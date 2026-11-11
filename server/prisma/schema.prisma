@@ -1,0 +1,264 @@
+// SpeakSafe database schema (SRS Section 3.4)
+// Sensitive content is stored ONLY as ciphertext produced in the browser.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  HANDLER
+  ADMIN
+}
+
+enum ReportMode {
+  ANONYMOUS
+  CONFIDENTIAL
+  NAMED
+}
+
+enum CaseStatus {
+  RECEIVED
+  UNDER_REVIEW
+  INQUIRY
+  PENDING_CLOSURE
+  CLOSED
+}
+
+enum SenderType {
+  REPORTER
+  HANDLER
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ---------- Staff (handlers and admin) ----------
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  displayName         String
+  role                Role
+  active              Boolean   @default(true)
+  passwordHash        String // Argon2id
+  publicKey           String? // X25519, base64 (handlers only)
+  encryptedPrivateKey String? // encrypted in the browser before upload
+  keySalt             String?
+  createdAt           DateTime  @default(now())
+  lastLoginAt         DateTime?
+
+  mfa              MfaFactor?
+  sessions         Session[]
+  reportKeys       ReportKey[]
+  assignedCases    Case[]            @relation("AssignedHandler")
+  exclusions       Exclusion[]
+  recusals         Recusal[]
+  notes            CaseNote[]
+  messages         Message[]
+  closureRequests  ClosureApproval[] @relation("Requester")
+  closureApprovals ClosureApproval[] @relation("Approver")
+}
+
+model MfaFactor {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  secretEnc     String // TOTP secret, encrypted at rest with SERVER_SECRET
+  confirmed     Boolean  @default(false)
+  recoveryCodes String[] // Argon2id hashes, single use
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id         String   @id // SHA-256 of the session token (raw token only in the cookie)
+  userId     String
+  csrfToken  String
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Category {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  active Boolean @default(true)
+  cases  Case[]
+}
+
+// ---------- Private journal (no account) ----------
+model Journal {
+  id         String         @id @default(uuid())
+  lookupHash String         @unique // SHA-256 of a key derived from the passphrase in the browser
+  createdAt  DateTime       @default(now())
+  entries    JournalEntry[]
+}
+
+model JournalEntry {
+  id          String       @id @default(uuid())
+  journalId   String
+  ciphertext  String
+  nonce       String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  journal     Journal      @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+}
+
+// ---------- Cases (a submitted report) ----------
+model Case {
+  id                  String     @id // public case ID, e.g. SS-7K2Q-9MPD
+  categoryId          Int
+  mode                ReportMode
+  ciphertext          String // report content, encrypted in the browser
+  nonce               String
+  fingerprint         String // SHA-256 of the stored ciphertext
+  status              CaseStatus @default(RECEIVED)
+  assignedHandlerId   String?
+  submittedAt         DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  lastHandlerActionAt DateTime?
+
+  category        Category          @relation(fields: [categoryId], references: [id])
+  assignedHandler User?             @relation("AssignedHandler", fields: [assignedHandlerId], references: [id])
+  access          CaseAccess?
+  keys            ReportKey[]
+  exclusions      Exclusion[]
+  recusals        Recusal[]
+  messages        Message[]
+  notes           CaseNote[]
+  attachments     Attachment[]
+  closures        ClosureApproval[]
+
+  @@index([assignedHandlerId])
+  @@index([status])
+}
+
+// How the reporter gets back in: case ID + passphrase (the server never sees the passphrase)
+model CaseAccess {
+  caseId            String  @id
+  salt              String // per-case salt for key derivation in the browser
+  authVerifier      String // Argon2id hash of an auth key derived from the passphrase
+  reporterPublicKey String // used to encrypt replies to the reporter
+  contactEnc        String? // optional contact email, encrypted
+  case              Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+// The report's content key, sealed separately to each eligible handler
+model ReportKey {
+  id        String @id @default(uuid())
+  caseId    String
+  handlerId String
+  sealedKey String
+  case      Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  handler   User   @relation(fields: [handlerId], references: [id])
+
+  @@unique([caseId, handlerId])
+}
+
+model Exclusion {
+  id        String   @id @default(uuid())
+  caseId    String
+  handlerId String
+  createdAt DateTime @default(now())
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  handler   User     @relation(fields: [handlerId], references: [id])
+
+  @@unique([caseId, handlerId])
+}
+
+model Recusal {
+  id        String   @id @default(uuid())
+  caseId    String
+  handlerId String
+  createdAt DateTime @default(now())
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  handler   User     @relation(fields: [handlerId], references: [id])
+
+  @@unique([caseId, handlerId])
+}
+
+model ClosureApproval {
+  id             String         @id @default(uuid())
+  caseId         String
+  requestedById  String
+  approvedById   String?
+  status         ApprovalStatus @default(PENDING)
+  previousStatus CaseStatus
+  requestedAt    DateTime       @default(now())
+  decidedAt      DateTime?
+  case           Case           @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  requestedBy    User           @relation("Requester", fields: [requestedById], references: [id])
+  approvedBy     User?          @relation("Approver", fields: [approvedById], references: [id])
+}
+
+model Message {
+  id         String     @id @default(uuid())
+  caseId     String
+  senderType SenderType
+  handlerId  String?
+  ciphertext String
+  nonce      String
+  keys       Json // { reporter: sealedKey, <handlerId>: sealedKey, ... }
+  createdAt  DateTime   @default(now())
+  case       Case       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  handler    User?      @relation(fields: [handlerId], references: [id])
+}
+
+// Internal notes: insert-only (no update/delete routes exist)
+model CaseNote {
+  id         String   @id @default(uuid())
+  caseId     String
+  handlerId  String
+  ciphertext String
+  nonce      String
+  keys       Json
+  createdAt  DateTime @default(now())
+  case       Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  handler    User     @relation(fields: [handlerId], references: [id])
+}
+
+model Attachment {
+  id             String        @id @default(uuid())
+  caseId         String?
+  journalEntryId String?
+  mimeType       String
+  size           Int
+  ciphertext     Bytes // metadata stripped and encrypted in the browser
+  nonce          String
+  createdAt      DateTime      @default(now())
+  case           Case?         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+}
+
+model ReplyTemplate {
+  id    Int    @id @default(autoincrement())
+  title String
+  body  String
+}
+
+// Tamper-evident audit log: each row stores the hash of the previous row.
+// The app's database role gets INSERT/SELECT only (see prisma/sql/audit_role.sql).
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  at         DateTime @default(now())
+  actorType  String // REPORTER | HANDLER | ADMIN | SYSTEM
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  details    Json?
+  prevHash   String
+  hash       String
+
+  @@index([targetType, targetId])
+}

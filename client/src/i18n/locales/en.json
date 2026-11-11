@@ -1,0 +1,31 @@
+{
+  "app": { "name": "SpeakSafe", "tagline": "Confidential concern reporting" },
+  "a11y": { "skip": "Skip to main content" },
+  "header": {
+    "display": "Display",
+    "light": "Light",
+    "dark": "Dark",
+    "eyecare": "Eye care",
+    "language": "Language",
+    "staff": "Committee login"
+  },
+  "quickExit": {
+    "label": "Quick exit",
+    "hint": "Leaves this site immediately and clears this page. Shortcut: Shift + Esc."
+  },
+  "home": {
+    "title": "You can raise a concern safely here",
+    "intro": "Report harassment, discrimination, misconduct, fraud or safety issues. You choose whether to stay anonymous, and you choose who can read your report.",
+    "options": { "title": "Know my options", "desc": "What counts, what happens next, and how anonymity works." },
+    "journal": { "title": "Keep a private record", "desc": "Write things down privately, with dates. Report later only if you want to." },
+    "report": { "title": "Report a concern", "desc": "A short, step-by-step form. No account needed." },
+    "check": { "title": "Check my case", "desc": "Use your case ID and passphrase to see updates and messages." },
+    "privacy": "No account, no name required. Your report is locked on your device before it is sent, so only the committee members it is meant for can open it."
+  },
+  "placeholder": {
+    "soon": "This page is being built.",
+    "back": "Back to home"
+  },
+  "notFound": { "title": "Page not found" },
+  "footer": { "demo": "Student project prototype. Do not submit real incidents." }
+}

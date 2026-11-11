@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* Design tokens for the three display modes (FR-41, NFR-30, NFR-36).
+   Every text/background pair is chosen to meet WCAG AA contrast; checked again in the Week 6 audit.
+   No external web fonts: a font request would reveal reporters' IP addresses to a third party. */
+:root,
+[data-theme="light"] {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --text: #1c2430;
+  --text-muted: #4a5565;
+  --border: #d4dae3;
+  --primary: #2f5d8a;
+  --primary-text: #ffffff;
+  --focus: #1d4ed8;
+  --danger: #a3262a;
+  --danger-text: #ffffff;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #14181f;
+  --surface: #1c222b;
+  --surface-2: #262e39;
+  --text: #e8ecf1;
+  --text-muted: #aab4c2;
+  --border: #36404d;
+  --primary: #8db7e3;
+  --primary-text: #0f1722;
+  --focus: #9cc3ff;
+  --danger: #f08b8e;
+  --danger-text: #2a0b0c;
+  color-scheme: dark;
+}
+
+/* Eye care: warm, low-glare background; described as a comfort option only, not a health claim. */
+[data-theme="eyecare"] {
+  --bg: #f4ecd8;
+  --surface: #faf4e6;
+  --surface-2: #ece2c8;
+  --text: #3b2f22;
+  --text-muted: #5c4d3c;
+  --border: #d8cbab;
+  --primary: #6b4f2a;
+  --primary-text: #fdf8ec;
+  --focus: #8a4b00;
+  --danger: #9a2f22;
+  --danger-text: #fdf8ec;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-line: var(--border);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--primary-text);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--danger-text);
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Nastaliq Urdu", Arial, sans-serif;
+  line-height: 1.6;
+}
+
+/* Visible keyboard focus everywhere (NFR-31). */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* Urdu reads more comfortably with extra line height. */
+html[lang="ur"] { line-height: 2; }
