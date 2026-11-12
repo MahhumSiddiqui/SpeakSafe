@@ -95,7 +95,38 @@ model Category {
   cases  Case[]
 }
 
-// ---------- Private journal (no account) ----------
+// ---------- Reporter "private space" accounts ----------
+// No email, phone or real name. Keys are derived and used only in the browser;
+// the server stores verifiers and ciphertext it cannot open.
+model ReporterAccount {
+  id                String            @id @default(uuid())
+  username          String            @unique // made-up name, lower case
+  pwSalt            String // salt for the browser's Argon2id (base64)
+  authHash          String // server-side Argon2id hash of the browser's auth key
+  masterKeyEnc      String // account master key, encrypted with the password-derived key
+  recSalt           String // salt for the recovery words
+  recAuthHash       String // server-side Argon2id hash of the recovery auth key
+  masterKeyRecEnc   String // master key, encrypted with the recovery-words key
+  publicKey         String // X25519 public key: committee replies are sealed to this
+  secretKeyEnc      String // X25519 secret key, encrypted with the master key
+  createdAt         DateTime          @default(now())
+  passwordChangedAt DateTime          @default(now())
+  sessions          ReporterSession[]
+}
+
+model ReporterSession {
+  id         String          @id // SHA-256 of the session token (raw token only in the cookie)
+  accountId  String
+  csrfToken  String
+  createdAt  DateTime        @default(now())
+  lastSeenAt DateTime        @default(now())
+  expiresAt  DateTime
+  account    ReporterAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+// ---------- Private journal ----------
 model Journal {
   id         String         @id @default(uuid())
   lookupHash String         @unique // SHA-256 of a key derived from the passphrase in the browser

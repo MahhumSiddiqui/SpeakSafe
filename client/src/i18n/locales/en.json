@@ -1,31 +1,203 @@
 {
-  "app": { "name": "SpeakSafe", "tagline": "Confidential concern reporting" },
-  "a11y": { "skip": "Skip to main content" },
+  "app": {
+    "name": "SpeakSafe"
+  },
+  "a11y": {
+    "skip": "Skip to main content"
+  },
   "header": {
-    "display": "Display",
-    "light": "Light",
-    "dark": "Dark",
-    "eyecare": "Eye care",
-    "language": "Language",
     "staff": "Committee login"
   },
   "quickExit": {
     "label": "Quick exit",
     "hint": "Leaves this site immediately and clears this page. Shortcut: Shift + Esc."
   },
+  "footer": {
+    "exitHint": "Shift + Esc = quick exit"
+  },
+  "nav": {
+    "label": "Main",
+    "home": "Home",
+    "cases": "My cases",
+    "journal": "Journal",
+    "support": "Support",
+    "logout": "Log out"
+  },
+  "common": {
+    "close": "Close",
+    "done": "Done",
+    "back": "Back",
+    "continue": "Continue"
+  },
+  "display": {
+    "title": "Display and reading",
+    "button": "Display",
+    "textSize": "Text size",
+    "lineSpacing": "Line spacing",
+    "spacing": {
+      "normal": "Normal",
+      "relaxed": "Relaxed",
+      "extra": "Extra"
+    },
+    "wideLetters": "Wider letter spacing",
+    "wideLettersHint": "Can make reading easier, for example with dyslexia",
+    "colours": "Colours: light, dark or eye care",
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "eyecare": "Eye care"
+    },
+    "reduceMotion": "Reduce motion",
+    "discreet": "Discreet tab name",
+    "discreetHint": "The browser tab shows \"Notes\" instead of SpeakSafe"
+  },
+  "readAloud": {
+    "start": "Read aloud",
+    "stop": "Stop reading",
+    "noUrdu": "This device has no Urdu voice installed. You can add one in your phone or computer's speech settings."
+  },
+  "idle": {
+    "title": "Are you still there?",
+    "body": "To protect your privacy, your space will lock in about a minute. Anything you saved stays safe.",
+    "stay": "Stay logged in"
+  },
   "home": {
-    "title": "You can raise a concern safely here",
-    "intro": "Report harassment, discrimination, misconduct, fraud or safety issues. You choose whether to stay anonymous, and you choose who can read your report.",
-    "options": { "title": "Know my options", "desc": "What counts, what happens next, and how anonymity works." },
-    "journal": { "title": "Keep a private record", "desc": "Write things down privately, with dates. Report later only if you want to." },
-    "report": { "title": "Report a concern", "desc": "A short, step-by-step form. No account needed." },
-    "check": { "title": "Check my case", "desc": "Use your case ID and passphrase to see updates and messages." },
-    "privacy": "No account, no name required. Your report is locked on your device before it is sent, so only the committee members it is meant for can open it."
+    "title": "A safe place to speak up.",
+    "intro": "Take your time. Nothing is shared until you choose.",
+    "signup": "Create my private space",
+    "login": "Log in",
+    "options": "Know your options",
+    "support": "Support and helplines",
+    "privacy": {
+      "title": "Your privacy",
+      "p1": "No email, phone or real name needed",
+      "p2": "Your IP address is not stored",
+      "p3": "Everything is encrypted on your device"
+    },
+    "how": {
+      "title": "How SpeakSafe works",
+      "s1": "Create a private space",
+      "s1b": "A made-up username and a password. No email or real name.",
+      "s2": "Write things down",
+      "s2b": "Keep a private journal and evidence. Nothing is shared.",
+      "s3": "Report when ready",
+      "s3b": "Choose who can read it, and whether they know who you are."
+    }
+  },
+  "help": {
+    "title": "Need help now?",
+    "body": "If you are in danger, call:",
+    "police": "Police emergency",
+    "rescue": "Rescue and ambulance",
+    "humanRights": "Human rights helpline (free)"
+  },
+  "auth": {
+    "username": "Username",
+    "password": "Password",
+    "stepOf": "Step {{n}} of {{total}}",
+    "show": "Show",
+    "hide": "Hide",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "strength": {
+      "0": "Too weak",
+      "1": "Weak",
+      "2": "Okay",
+      "3": "Strong",
+      "4": "Very strong"
+    },
+    "err": {
+      "username": "Use 3 to 32 lower-case letters or numbers, with single hyphens between them.",
+      "passwordShort": "Please use at least {{n}} characters.",
+      "passwordWeak": "This password is easy to guess. Try three or more random words.",
+      "mismatch": "The two passwords are not the same."
+    }
+  },
+  "signup": {
+    "title": "Create your private space",
+    "intro": "One place for your journal, reports and messages. Only you can open it.",
+    "usernameHint": "We made one up for you. Please don't use your real name.",
+    "suggest": "Suggest another username",
+    "passwordHint": "Tip: three or more random words are easy to remember and hard to guess.",
+    "confirm": "Type the password again",
+    "privacyNote": "No email, no phone number, no real name. Even if you report as Anonymous, the committee never sees your username.",
+    "haveAccount": "Already have a private space?",
+    "wordsTitle": "Save your recovery words",
+    "wordsIntro": "If you forget your password, these 6 words are the only way back in.",
+    "copy": "Copy words",
+    "copied": "Copied",
+    "wordsWarning": "Write them on paper and keep them somewhere safe. Nobody can recover them for you, not even us. That is what keeps your space private.",
+    "checkTitle": "Quick check: type word {{a}} and word {{b}}",
+    "wordN": "Word {{n}}",
+    "creating": "Securing your private space…",
+    "create": "Open my private space",
+    "checkHint": "Type the two words above to continue."
+  },
+  "login": {
+    "title": "Welcome back",
+    "intro": "Log in to your private space.",
+    "missing": "Please enter your username and password.",
+    "busy": "Unlocking…",
+    "forgot": "Forgot your password? Use your recovery words",
+    "sharedNote": "On a shared device? Your space locks itself after 10 minutes without activity.",
+    "new": "New here?"
+  },
+  "recover": {
+    "title": "Use your recovery words",
+    "intro": "Type your username and your 6 recovery words, then choose a new password.",
+    "words": "Recovery words, in order",
+    "wordsHint": "Tip: paste all six words into the first box.",
+    "badWord": "Word {{n}} isn't one of the recovery words we use. Please check the spelling.",
+    "newPassword": "New password",
+    "busy": "Checking your words…",
+    "submit": "Set new password"
+  },
+  "space": {
+    "hello": "Hello, {{name}}",
+    "title": "You're doing the right thing by being here.",
+    "report": "Report a concern",
+    "reportSub": "About 5–10 minutes. Voice or typing.",
+    "casesSub": "Status and messages",
+    "journalSub": "Private notes and evidence",
+    "supportSub": "Helplines and advice",
+    "options": "Your options",
+    "optionsSub": "What happens next",
+    "break": "Take a break",
+    "welcomeNew": "Your private space is ready. Keep your recovery words safe.",
+    "recovered": "Your new password is set. You were logged out everywhere else.",
+    "sub": "Take things one step at a time. You can stop and come back whenever you like.",
+    "start": "Start",
+    "safeTitle": "Your space is protected",
+    "safe1": "Only your password can unlock what you save here.",
+    "safe2": "The committee never sees your username.",
+    "safe3": "Keep your 6 recovery words somewhere safe."
+  },
+  "break": {
+    "saved": "Everything you saved is safe",
+    "title": "Take a moment",
+    "intro": "There's no rush. Breathe with the circle.",
+    "in": "Breathe in",
+    "hold": "Hold",
+    "out": "Breathe out",
+    "pattern": "In for 4 · hold for 4 · out for 6",
+    "ready": "I'm ready to continue",
+    "logout": "Log out safely",
+    "talk": "Talk to someone: support and helplines"
   },
   "placeholder": {
-    "soon": "This page is being built.",
-    "back": "Back to home"
+    "soon": "This section is coming in the next build step.",
+    "back": "Back"
   },
-  "notFound": { "title": "Page not found" },
-  "footer": { "demo": "Student project prototype. Do not submit real incidents." }
+  "notFound": {
+    "title": "Page not found"
+  },
+  "errors": {
+    "network": "We can't reach SpeakSafe right now. Please check your internet connection and try again.",
+    "generic": "Something went wrong. Please try again."
+  },
+  "authShell": {
+    "title": "Your story stays yours.",
+    "body": "SpeakSafe locks everything on your own device before it is sent. Only the people you choose can read your report.",
+    "foot": "Free and confidential. Leave any time with Quick exit."
+  }
 }
