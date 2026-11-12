@@ -13,6 +13,10 @@ import MyCases from './pages/cases/MyCases';
 import CaseView from './pages/cases/CaseView';
 import NotFound from './pages/NotFound';
 import { GuestOnly, RequireReporter } from './auth/RequireReporter';
+import StaffLogin from './staff/StaffLogin';
+import Dashboard from './staff/Dashboard';
+import StaffCase from './staff/StaffCase';
+import { RequireStaff } from './staff/RequireStaff';
 
 export default function App() {
   const { t } = useTranslation();
@@ -31,7 +35,10 @@ export default function App() {
       <Route path="/journal" element={<RequireReporter><Placeholder title={t('nav.journal')} /></RequireReporter>} />
       <Route path="/options" element={<Placeholder title={t('home.options')} />} />
       <Route path="/support" element={<Placeholder title={t('home.support')} />} />
-      <Route path="/staff/login" element={<Placeholder title={t('header.staff')} reporter={false} />} />
+      <Route path="/staff/login" element={<StaffLogin />} />
+      <Route path="/staff" element={<RequireStaff role="HANDLER"><Dashboard /></RequireStaff>} />
+      <Route path="/staff/cases/:id" element={<RequireStaff role="HANDLER"><StaffCase /></RequireStaff>} />
+      <Route path="/admin" element={<RequireStaff role="ADMIN"><Placeholder title="Admin console" reporter={false} /></RequireStaff>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
