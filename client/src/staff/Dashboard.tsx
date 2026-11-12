@@ -48,7 +48,7 @@ export default function Dashboard() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-[1.75rem] font-extrabold">Good {hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'}, {me?.displayName}</h1>
-            <p className="text-muted">{rows ? `You have ${rows.filter((r) => r.status !== 'CLOSED').length} open cases.` : ' '}</p>
+            <p className="text-muted">{rows ? (() => { const n = rows.filter((r) => r.status !== 'CLOSED').length; return n === 0 ? 'You have no open cases.' : `You have ${n} open ${n === 1 ? 'case' : 'cases'}.`; })() : ' '}</p>
           </div>
           <label className="flex items-center gap-2">
             <span className="sr-only">Search by case ID</span>

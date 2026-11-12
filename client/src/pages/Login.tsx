@@ -22,6 +22,8 @@ export default function Login() {
     e.preventDefault();
     if (busy) return;
     if (!username.trim() || !password) return setError(t('login.missing'));
+    // A common slip: committee members typing their email here. Point them to the right door.
+    if (username.includes('@')) return setError(t('login.staffHint'));
     setBusy(true);
     setError('');
     try {
@@ -53,6 +55,7 @@ export default function Login() {
           <span>{t('login.sharedNote')}</span>
         </div>
         <p className="text-center text-sm">{t('login.new')} <Link to="/signup">{t('home.signup')}</Link></p>
+        <p className="text-center text-sm text-muted">{t('login.areYouStaff')} <Link to="/staff/login">{t('header.staff')}</Link></p>
       </form>
       </AuthShell>
     </Layout>

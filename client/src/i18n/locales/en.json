@@ -140,7 +140,9 @@
     "busy": "Unlocking…",
     "forgot": "Forgot your password? Use your recovery words",
     "sharedNote": "On a shared device? Your space locks itself after 10 minutes without activity.",
-    "new": "New here?"
+    "new": "New here?",
+    "staffHint": "This is the login for reporters. Committee members sign in on the Committee login page (link below).",
+    "areYouStaff": "Committee member?"
   },
   "recover": {
     "title": "Use your recovery words",
