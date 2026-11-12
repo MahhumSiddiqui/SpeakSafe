@@ -74,7 +74,7 @@ function IdleWarning() {
 }
 
 // UI-3: every reporter page has Quick exit, language, Display & reading; logged-in pages add navigation.
-export function Layout({ children, reporter = true, narrow = false }: { children: ReactNode; reporter?: boolean; narrow?: boolean }) {
+export function Layout({ children, reporter = true, narrow = false, focus = false }: { children: ReactNode; reporter?: boolean; narrow?: boolean; focus?: boolean }) {
   const { t } = useTranslation();
   const { status, logout } = useReporter();
   const [displayOpen, setDisplayOpen] = useState(false);
@@ -123,7 +123,7 @@ export function Layout({ children, reporter = true, narrow = false }: { children
         <main id="main" className={`mx-auto w-full min-w-0 flex-1 px-4 pt-6 pb-10 lg:pt-8 ${narrow ? 'max-w-xl' : 'max-w-6xl'}`}>{children}</main>
       </div>
 
-      <footer className={`border-t border-line ${loggedIn ? 'pb-20 md:pb-0' : ''}`}>
+      <footer className={`border-t border-line ${loggedIn && !focus ? 'pb-20 md:pb-0' : ''}`}>
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-sm text-muted lg:px-8">
           <span>{t('footer.exitHint')}</span>
           <span className="flex items-center gap-4">
@@ -135,7 +135,7 @@ export function Layout({ children, reporter = true, narrow = false }: { children
         </div>
       </footer>
 
-      {loggedIn && (
+      {loggedIn && !focus && (
         <nav aria-label={t('nav.label')} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-surface px-1 pt-1.5 pb-2.5 md:hidden">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} className={({ isActive }) => `flex flex-col items-center gap-0.5 py-1.5 text-xs font-semibold no-underline ${isActive ? 'text-primary' : 'text-muted'}`}>

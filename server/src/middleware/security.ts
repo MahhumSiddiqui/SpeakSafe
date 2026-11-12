@@ -29,8 +29,8 @@ export function applySecurity(app: Express): void {
     cors({
       origin: config.CLIENT_ORIGIN,
       credentials: true,
-      methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-      allowedHeaders: ['Content-Type', 'X-CSRF-Token'],
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+      allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'X-Case-Auth', 'X-Attachment-Kind', 'X-Attachment-Type'],
     }),
   );
 

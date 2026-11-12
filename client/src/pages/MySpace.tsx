@@ -6,6 +6,8 @@ import { HeroArt, Icon } from '../components/Icon';
 import { ReadAloud } from '../components/ReadAloud';
 import { HelpNow } from '../components/HelpNow';
 import { useReporter } from '../auth/ReporterAuth';
+import { loadDraft } from './report/draft';
+import { loadVault } from '../lib/vault';
 
 // The reporter's home after logging in. Draft, case and "Not alone" cards appear here as those features land.
 export default function MySpace() {
@@ -16,8 +18,16 @@ export default function MySpace() {
     if (flash) clearFlash();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [draft, setDraft] = useState<{ step: number; updatedAt: string } | null>(null);
+  const [caseCount, setCaseCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!session) return;
+    loadDraft(session.masterKey).then((d) => setDraft(d ? { step: d.draft.step, updatedAt: d.updatedAt } : null)).catch(() => {});
+    loadVault(session.masterKey).then((v) => setCaseCount(v.cases.length)).catch(() => {});
+  }, [session]);
+
   const tiles = [
-    { to: '/cases', icon: 'folder', title: t('nav.cases'), sub: t('space.casesSub') },
+    { to: '/cases', icon: 'folder', title: t('nav.cases'), sub: caseCount ? t('space.casesCount', { count: caseCount }) : t('space.casesSub') },
     { to: '/journal', icon: 'book', title: t('nav.journal'), sub: t('space.journalSub') },
     { to: '/support', icon: 'lifebuoy', title: t('nav.support'), sub: t('space.supportSub') },
     { to: '/options', icon: 'info', title: t('space.options'), sub: t('space.optionsSub') },
@@ -41,6 +51,20 @@ export default function MySpace() {
               <p data-read className="relative hidden text-muted lg:block">{t('space.sub')}</p>
             </section>
             <ReadAloud />
+            {draft && (
+              <section className="card flex flex-col gap-3 !border-2 !border-primary lg:p-6" aria-labelledby="draft-h">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="badge badge-rev"><span className="h-2 w-2 rounded-full bg-current" />{t('space.draftSaved')}</span>
+                  <span className="text-xs text-muted">{new Date(draft.updatedAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+                <h2 id="draft-h" className="text-lg font-bold">{t('space.draftTitle')}</h2>
+                <div className="grid grid-cols-6 gap-1.5" aria-hidden="true">
+                  {[1, 2, 3, 4, 5, 6].map((n) => <span key={n} className={`h-[7px] rounded-full ${n < draft.step ? 'bg-primary' : 'bg-primary-soft'}`} />)}
+                </div>
+                <span className="text-sm text-muted">{t('space.draftStep', { n: draft.step, name: t(`report.steps.${draft.step}`) })}</span>
+                <Link to="/report" className="btn btn-primary btn-sm self-start">{t('common.continue')}<span className="rtl:rotate-180"><Icon name="arrow" size={18} /></span></Link>
+              </section>
+            )}
             <Link to="/report" className="card flex items-center gap-4 !border-primary !bg-primary !text-on-primary lg:p-6">
               <span className="icon-tile !bg-white/20 !text-on-primary lg:h-14 lg:w-14"><Icon name="flag" size={26} /></span>
               <span className="flex-1">

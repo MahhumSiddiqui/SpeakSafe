@@ -10,7 +10,8 @@
     "test": "vitest run",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:handler-keys": "tsx prisma/handler-keys.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.0",
@@ -27,8 +28,10 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/libsodium-wrappers-sumo": "^0.7.8",
     "@types/node": "^22.10.0",
     "@types/supertest": "^6.0.2",
+    "libsodium-wrappers-sumo": "^0.8.4",
     "prisma": "^6.16.0",
     "supertest": "^7.0.0",
     "tsx": "^4.19.2",

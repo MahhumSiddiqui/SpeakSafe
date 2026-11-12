@@ -7,6 +7,10 @@ import Recover from './pages/Recover';
 import MySpace from './pages/MySpace';
 import TakeBreak from './pages/TakeBreak';
 import Placeholder from './pages/Placeholder';
+import ReportWizard from './pages/report/ReportWizard';
+import Sent from './pages/report/Sent';
+import MyCases from './pages/cases/MyCases';
+import CaseView from './pages/cases/CaseView';
 import NotFound from './pages/NotFound';
 import { GuestOnly, RequireReporter } from './auth/RequireReporter';
 
@@ -20,8 +24,10 @@ export default function App() {
       <Route path="/recover" element={<GuestOnly><Recover /></GuestOnly>} />
       <Route path="/space" element={<RequireReporter><MySpace /></RequireReporter>} />
       <Route path="/break" element={<RequireReporter><TakeBreak /></RequireReporter>} />
-      <Route path="/report" element={<RequireReporter><Placeholder title={t('space.report')} /></RequireReporter>} />
-      <Route path="/cases" element={<RequireReporter><Placeholder title={t('nav.cases')} /></RequireReporter>} />
+      <Route path="/report" element={<RequireReporter><ReportWizard /></RequireReporter>} />
+      <Route path="/report/sent" element={<RequireReporter><Sent /></RequireReporter>} />
+      <Route path="/cases" element={<RequireReporter><MyCases /></RequireReporter>} />
+      <Route path="/cases/:id" element={<RequireReporter><CaseView /></RequireReporter>} />
       <Route path="/journal" element={<RequireReporter><Placeholder title={t('nav.journal')} /></RequireReporter>} />
       <Route path="/options" element={<Placeholder title={t('home.options')} />} />
       <Route path="/support" element={<Placeholder title={t('home.support')} />} />

@@ -3,6 +3,7 @@ let csrfToken = '';
 export const setCsrfToken = (t: string) => {
   csrfToken = t;
 };
+export const getCsrfToken = () => csrfToken;
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -10,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T = unknown>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T = unknown>(path: string, opts: { method?: string; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
   const method = opts.method ?? (opts.body !== undefined ? 'POST' : 'GET');
   let res: Response;
   try {
@@ -20,6 +21,7 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
       headers: {
         ...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(method !== 'GET' && csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        ...(opts.headers ?? {}),
       },
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
     });

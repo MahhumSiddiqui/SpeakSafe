@@ -12,6 +12,7 @@
     "@scure/bip39": "^2.4.0",
     "i18next": "^24.2.0",
     "libsodium-wrappers-sumo": "^0.8.4",
+    "pdf-lib": "^1.17.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^15.4.0",

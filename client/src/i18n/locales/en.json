@@ -170,7 +170,12 @@
     "safeTitle": "Your space is protected",
     "safe1": "Only your password can unlock what you save here.",
     "safe2": "The committee never sees your username.",
-    "safe3": "Keep your 6 recovery words somewhere safe."
+    "safe3": "Keep your 6 recovery words somewhere safe.",
+    "draftSaved": "Draft saved",
+    "draftTitle": "Continue your report",
+    "draftStep": "Step {{n}} of 6 · {{name}}",
+    "casesCount_one": "{{count}} case",
+    "casesCount_other": "{{count}} cases"
   },
   "break": {
     "saved": "Everything you saved is safe",
@@ -199,5 +204,226 @@
     "title": "Your story stays yours.",
     "body": "SpeakSafe locks everything on your own device before it is sent. Only the people you choose can read your report.",
     "foot": "Free and confidential. Leave any time with Quick exit."
+  },
+  "report": {
+    "loading": "Opening your report…",
+    "progress": "Report progress",
+    "stepOf": "Step {{n}} of {{total}} · {{name}}",
+    "minutesLeft": "About {{n}} min left",
+    "steps": {
+      "1": "Type of concern",
+      "2": "What happened",
+      "3": "Evidence",
+      "4": "How you're known",
+      "5": "Who can read it",
+      "6": "Check and send"
+    },
+    "q": {
+      "1": "What is this about?",
+      "2": "What happened?",
+      "3": "Do you have anything that shows what happened?",
+      "4": "How would you like to be known?",
+      "5": "Is there anyone who should NOT see this?",
+      "6": "Check and send"
+    },
+    "help": {
+      "1": "Choose the closest one. You can change it later.",
+      "2": "Use your own words. Leave out anything you are not sure about.",
+      "3": "Photos, screenshots or documents. This step is optional.",
+      "4": "This only changes what the committee knows about you. Your report is protected the same way in every option.",
+      "5": "If a committee member is involved or close to the person, keep them away. They will never be able to open your report.",
+      "6": "Nothing is sent until you press Send."
+    },
+    "need": {
+      "1": "Please choose the type of concern to continue.",
+      "2": "Please describe what happened, in writing or as a voice note.",
+      "4": "Please choose an option. For Confidential or Named, please add your name.",
+      "5": "At least two committee members must be able to read your report."
+    },
+    "who": "Who did this happen to?",
+    "whoMe": "Me",
+    "whoOther": "Someone else (I saw it)",
+    "howTell": "How do you want to tell us?",
+    "method": {
+      "type": "Type",
+      "voice": "Voice note",
+      "dictate": "Dictate"
+    },
+    "voiceNotes": "Your voice notes",
+    "voiceLabel": "Voice note {{n}}",
+    "listen": "Listen",
+    "remove": "Remove {{name}}",
+    "descLabel": "Your description",
+    "descOptional": "Anything you'd like to add in writing (optional)",
+    "descPlaceholder": "Start anywhere. A few sentences is enough.",
+    "when": "When did it happen?",
+    "roughly": "(roughly is fine)",
+    "whenOpt": {
+      "week": "This week",
+      "month": "This month",
+      "earlier": "Earlier",
+      "unsure": "Not sure"
+    },
+    "where": "Where did it happen? (optional)",
+    "whereHint": "For example: a building, a class or an online group. Leave it out if it could identify you.",
+    "yourName": "Your name",
+    "contact": "How can they contact you? (optional)",
+    "contactHint": "An email or phone number. Only the assigned members will see it.",
+    "later": "Finish later",
+    "startOver": "Discard this draft and start over",
+    "save": {
+      "idle": "Saved privately as you go",
+      "saving": "Saving privately…",
+      "saved": "Saved in your private space",
+      "error": "Couldn't save just now. We'll try again."
+    },
+    "sending": {
+      "readers": "Choosing committee members…",
+      "locking": "Locking your report…",
+      "sending": "Sending…",
+      "files": "Sending your files…"
+    }
+  },
+  "categories": {
+    "Harassment": "Harassment",
+    "Discrimination": "Discrimination",
+    "Academic misconduct": "Academic misconduct",
+    "Fraud or financial misconduct": "Fraud or money",
+    "Safety concern": "Safety risk",
+    "Other": "Something else"
+  },
+  "evidence": {
+    "cleanNote": "Hidden details like location, the date a photo was taken and the phone model are removed from every file on your device, before anything is sent.",
+    "add": "Add photo, screenshot or PDF",
+    "limits": "Up to {{n}} files, 10 MB each. Photos (JPG, PNG, WebP) and PDFs.",
+    "cleaning": "Removing hidden details…",
+    "cleaned": "Cleaned",
+    "none": "No files added. That's fine.",
+    "badType": "That type of file can't be added. Please use a photo (JPG, PNG, WebP) or a PDF.",
+    "tooBig": "That file is larger than 10 MB.",
+    "cantRead": "We couldn't read that file. If it's a password-protected PDF, please remove the password first.",
+    "photoN": "Photo {{n}}",
+    "docN": "Document {{n}}",
+    "reveal": "Tap to show",
+    "hide": "Hide picture"
+  },
+  "mode": {
+    "ANONYMOUS": {
+      "title": "Anonymous",
+      "body": "The committee won't know who you are.",
+      "limits": "Even without your name, small details (like an exact day, place, or how few people were there) could make it possible to guess who you are. You can leave those out or keep them general."
+    },
+    "CONFIDENTIAL": {
+      "title": "Confidential",
+      "body": "Only your assigned committee members see your name and contact.",
+      "who": "Only the two assigned members can see this. It is locked inside your report."
+    },
+    "NAMED": {
+      "title": "Named",
+      "body": "Your name is part of the report.",
+      "who": "Your name will be part of the report the committee reads."
+    }
+  },
+  "exclude": {
+    "keptAway": "Kept away",
+    "tooMany": "At least two committee members must be able to read your report. Please untick someone.",
+    "note": "Your report will be locked for two of the members you didn't tick."
+  },
+  "review": {
+    "witness": "as a witness",
+    "words": "{{n}} words",
+    "voice_one": "{{count}} voice note",
+    "voice_other": "{{count}} voice notes",
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "noFiles": "No files",
+    "excluded_one": "{{count}} member kept away",
+    "excluded_other": "{{count}} members kept away",
+    "noneExcluded": "No one kept away",
+    "lockNote": "When you press Send, your report and files are locked on this device so that only the two assigned committee members can open them.",
+    "send": "Send report",
+    "edit": "Edit"
+  },
+  "voice": {
+    "unsupported": "This browser can't record audio. You can type instead, or try Chrome or Edge.",
+    "denied": "We couldn't use the microphone. Please allow microphone access in your browser, then try again.",
+    "start": "Start recording",
+    "tapToRecord": "Tap to record",
+    "limit": "Up to 5 minutes. You can pause.",
+    "paused": "Paused",
+    "recording": "Recording",
+    "discard": "Discard this recording",
+    "stop": "Stop and save",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stopHint": "Press the square to save your voice note.",
+    "locked": "Locked on this device before it is sent"
+  },
+  "dictation": {
+    "unsupported": "Dictation isn't available in this browser. Try a voice note instead.",
+    "consentTitle": "Before you turn on dictation",
+    "consentBody": "To turn speech into text, your browser may send your voice to Google or Microsoft. For the most privacy, record a voice note instead: it is locked on your device.",
+    "useVoice": "Use a voice note",
+    "agree": "I understand, turn on",
+    "error": "Dictation stopped. Please try again.",
+    "stop": "Stop dictation",
+    "start": "Start dictation",
+    "listening": "Listening… speak normally",
+    "tap": "Tap and speak",
+    "appendHint": "Your words appear in the box below, where you can correct them."
+  },
+  "sent": {
+    "title": "Your report has been sent.",
+    "body": "That took courage. You don't have to do anything else right now.",
+    "failed_one": "Your report was sent, but {{count}} file could not be added. You can add it later from your case.",
+    "failed_other": "Your report was sent, but {{count}} files could not be added. You can add them later from your case.",
+    "caseId": "Case ID",
+    "copy": "Copy",
+    "fingerprint": "Tamper-proof seal",
+    "fingerprintHint": "A unique code made from your locked report. If anyone changed even one letter, this seal would no longer match.",
+    "next": "What happens next",
+    "next1": "Two committee members can now read your report. Usually they look at it within 2 working days.",
+    "next2": "You'll see updates under My cases whenever you log in.",
+    "view": "Go to my case",
+    "home": "Back to home"
+  },
+  "status": {
+    "RECEIVED": "Received",
+    "UNDER_REVIEW": "Under review",
+    "INQUIRY": "Inquiry",
+    "PENDING_CLOSURE": "Closing",
+    "CLOSED": "Closed"
+  },
+  "cases": {
+    "title": "My cases",
+    "intro": "Only you can see this list.",
+    "loading": "Unlocking your cases…",
+    "empty": "You haven't sent a report yet.",
+    "emptyHint": "When you do, it will appear here with its progress and any messages.",
+    "sentOn": "Sent {{date}}"
+  },
+  "caseView": {
+    "notFound": "We couldn't find this case in your private space.",
+    "unlocking": "Unlocking your case…",
+    "statusLine": {
+      "RECEIVED": "Your report has arrived. The committee will look at it soon.",
+      "UNDER_REVIEW": "Your case is being looked at.",
+      "INQUIRY": "A formal inquiry is taking place.",
+      "PENDING_CLOSURE": "The committee is getting ready to close this case.",
+      "CLOSED": "This case is closed."
+    },
+    "yourReport": "Your report",
+    "onlyReaders": "Only you and the assigned members",
+    "where": "Where",
+    "about": "About",
+    "files": "Files and voice notes",
+    "progress": "Progress",
+    "now": "Now",
+    "messagesTitle": "Messages",
+    "messagesSoon": "When the committee writes to you, their messages will appear here.",
+    "voiceN": "Voice note {{n}}",
+    "opening": "Unlocking…",
+    "open": "Unlock and open",
+    "download": "Download"
   }
 }

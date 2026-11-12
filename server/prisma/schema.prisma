@@ -111,7 +111,12 @@ model ReporterAccount {
   secretKeyEnc      String // X25519 secret key, encrypted with the master key
   createdAt         DateTime          @default(now())
   passwordChangedAt DateTime          @default(now())
+  // Encrypted (master key) list of this person's cases. The database itself has NO link between
+  // an account and its cases, so even someone reading the database cannot tell who filed what.
+  vaultEnc          String?
   sessions          ReporterSession[]
+  draft             ReporterDraft?
+  draftFiles        DraftFile[]
 }
 
 model ReporterSession {
@@ -121,6 +126,26 @@ model ReporterSession {
   createdAt  DateTime        @default(now())
   lastSeenAt DateTime        @default(now())
   expiresAt  DateTime
+  account    ReporterAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+// One unfinished report per account, encrypted with the account's master key.
+model ReporterDraft {
+  accountId  String          @id
+  ciphertext String
+  updatedAt  DateTime        @updatedAt
+  account    ReporterAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+// Evidence and voice notes added to a draft (encrypted with the master key). Deleted after sending.
+model DraftFile {
+  id         String          @id @default(uuid())
+  accountId  String
+  ciphertext Bytes
+  size       Int
+  createdAt  DateTime        @default(now())
   account    ReporterAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([accountId])
@@ -153,6 +178,7 @@ model Case {
   ciphertext          String // report content, encrypted in the browser
   nonce               String
   fingerprint         String // SHA-256 of the stored ciphertext
+  aboutOther          Boolean    @default(false) // reported by a witness
   status              CaseStatus @default(RECEIVED)
   assignedHandlerId   String?
   submittedAt         DateTime   @default(now())
@@ -174,12 +200,14 @@ model Case {
   @@index([status])
 }
 
-// How the reporter gets back in: case ID + passphrase (the server never sees the passphrase)
+// How the reporter's browser proves it owns a case: a per-case key derived from the account's master key.
+// The server stores only a hash of it (authVerifier); salt is unused since accounts were introduced.
 model CaseAccess {
   caseId            String  @id
   salt              String // per-case salt for key derivation in the browser
   authVerifier      String // Argon2id hash of an auth key derived from the passphrase
-  reporterPublicKey String // used to encrypt replies to the reporter
+  reporterPublicKey String // per-case key: replies to the reporter are sealed to this
+  reporterSealedKey String? // the report's content key, sealed to the reporter's per-case key
   contactEnc        String? // optional contact email, encrypted
   case              Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
 }
@@ -263,7 +291,9 @@ model Attachment {
   caseId         String?
   journalEntryId String?
   mimeType       String
+  kind           String        @default("file") // "image" | "pdf" | "voice"
   size           Int
+  fingerprint    String        @default("") // SHA-256 of the stored ciphertext
   ciphertext     Bytes // metadata stripped and encrypted in the browser
   nonce          String
   createdAt      DateTime      @default(now())
