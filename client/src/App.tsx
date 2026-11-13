@@ -17,6 +17,11 @@ import StaffLogin from './staff/StaffLogin';
 import Dashboard from './staff/Dashboard';
 import StaffCase from './staff/StaffCase';
 import { RequireStaff } from './staff/RequireStaff';
+import Account from './staff/Account';
+import Users from './staff/admin/Users';
+import Categories from './staff/admin/Categories';
+import Audit from './staff/admin/Audit';
+import Stats from './staff/admin/Stats';
 
 export default function App() {
   const { t } = useTranslation();
@@ -38,7 +43,11 @@ export default function App() {
       <Route path="/staff/login" element={<StaffLogin />} />
       <Route path="/staff" element={<RequireStaff role="HANDLER"><Dashboard /></RequireStaff>} />
       <Route path="/staff/cases/:id" element={<RequireStaff role="HANDLER"><StaffCase /></RequireStaff>} />
-      <Route path="/admin" element={<RequireStaff role="ADMIN"><Placeholder title="Admin console" reporter={false} /></RequireStaff>} />
+      <Route path="/staff/account" element={<RequireStaff><Account /></RequireStaff>} />
+      <Route path="/admin" element={<RequireStaff role="ADMIN"><Users /></RequireStaff>} />
+      <Route path="/admin/categories" element={<RequireStaff role="ADMIN"><Categories /></RequireStaff>} />
+      <Route path="/admin/audit" element={<RequireStaff role="ADMIN"><Audit /></RequireStaff>} />
+      <Route path="/admin/stats" element={<RequireStaff role="ADMIN"><Stats /></RequireStaff>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

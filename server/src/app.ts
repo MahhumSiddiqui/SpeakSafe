@@ -8,6 +8,7 @@ import { reportsRouter } from './routes/reports.js';
 import { publicRouter } from './routes/public.js';
 import { staffAuthRouter } from './routes/staffAuth.js';
 import { staffCasesRouter } from './routes/staffCases.js';
+import { adminRouter } from './routes/admin.js';
 
 export function createApp() {
   const app = express();
@@ -20,6 +21,7 @@ export function createApp() {
   app.use('/api/reports', reportsRouter);
   app.use('/api/staff', staffAuthRouter);
   app.use('/api/staff/cases', staffCasesRouter);
+  app.use('/api/admin', adminRouter);
   // Further feature routes (reports, cases, staff, admin) are added here step by step.
 
   app.use(notFound);

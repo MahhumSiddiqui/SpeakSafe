@@ -53,6 +53,7 @@ model User {
   keySalt             String?
   createdAt           DateTime  @default(now())
   lastLoginAt         DateTime?
+  mustChangePassword  Boolean   @default(false) // set for one-time passwords issued by the admin
 
   mfa              MfaFactor?
   sessions         Session[]

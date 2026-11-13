@@ -42,6 +42,10 @@ export function requireStaff(...roles: Role[]): RequestHandler {
         throw new HttpError(401, 'You were signed out after 15 minutes without activity. Please sign in again.');
       }
       if (roles.length && !roles.includes(s.user.role)) throw new HttpError(403, 'Your account cannot do this.');
+      // A one-time password from the admin must be replaced before anything else can be done.
+      if (s.user.mustChangePassword && !/^\/api\/staff\/(me|password|logout|ping|keys)$/.test(req.originalUrl.split('?')[0])) {
+        throw new HttpError(403, 'Please choose your own password first.');
+      }
       if (req.method !== 'GET' && !safeEqual(String(req.get('X-CSRF-Token') ?? ''), s.csrfToken)) {
         throw new HttpError(403, 'This request could not be verified. Please reload the page.');
       }

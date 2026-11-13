@@ -7,7 +7,7 @@ import { deriveKeys, fromB64, open, seal, sodium, toB64 } from '../lib/keys';
 export interface StaffMe {
   id: string; email: string; displayName: string; role: 'HANDLER' | 'ADMIN';
   publicKey: string | null; encryptedPrivateKey: string | null; keySalt: string | null;
-  needsKeys: boolean; recoveryCodesLeft: number; csrfToken: string;
+  needsKeys: boolean; recoveryCodesLeft: number; csrfToken: string; mustChangePassword: boolean;
 }
 type Status = 'loading' | 'in' | 'out';
 const STORE = 'ss.staff';
@@ -22,6 +22,7 @@ interface Ctx {
   complete: (me: StaffMe, password: string) => Promise<void>;
   logout: (reason?: 'idle') => Promise<void>;
   signedOutIdle: boolean;
+  setMe: (m: StaffMe) => void;
 }
 const C = createContext<Ctx | null>(null);
 
@@ -89,7 +90,7 @@ export function StaffAuthProvider({ children }: { children: ReactNode }) {
     setStatus('out');
   }, []);
 
-  return <C.Provider value={{ status, me, keys, complete, logout, signedOutIdle }}>{children}</C.Provider>;
+  return <C.Provider value={{ status, me, keys, complete, logout, signedOutIdle, setMe }}>{children}</C.Provider>;
 }
 
 export function useStaff() {

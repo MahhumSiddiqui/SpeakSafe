@@ -32,6 +32,7 @@ async function mePayload(u: User, csrfToken: string) {
     publicKey: u.publicKey, encryptedPrivateKey: u.encryptedPrivateKey, keySalt: u.keySalt,
     needsKeys: u.role === 'HANDLER' && !u.publicKey,
     recoveryCodesLeft: mfa?.recoveryCodes.length ?? 0,
+    mustChangePassword: u.mustChangePassword,
     csrfToken,
   };
 }
@@ -169,6 +170,33 @@ staffAuthRouter.post('/keys', requireStaff('HANDLER'), async (req, res, next) =>
 });
 
 staffAuthRouter.post('/ping', requireStaff(), (_req, res) => res.json({ ok: true }));
+
+// Change your own password. A member's private key is re-locked with the new password in their browser,
+// so the server receives only the newly encrypted key, never the key itself.
+const STRONG = z.string().min(12, 'Use at least 12 characters.').max(500);
+staffAuthRouter.post('/password', requireStaff(), async (req, res, next) => {
+  try {
+    const b = z.object({ currentPassword: z.string().min(1).max(500), newPassword: STRONG, encryptedPrivateKey: b64(256).optional(), keySalt: b64(64).optional() }).parse(req.body);
+    const u = await prisma.user.findUniqueOrThrow({ where: { id: req.staff!.userId } });
+    if (!(await argon2.verify(u.passwordHash, b.currentPassword))) throw new HttpError(401, 'Your current password is not correct.');
+    if (b.newPassword === b.currentPassword) throw new HttpError(400, 'Please choose a password different from the current one.');
+    if (u.publicKey && (!b.encryptedPrivateKey || !b.keySalt)) throw new HttpError(400, 'Your encryption key must be re-locked with the new password.');
+    await prisma.user.update({
+      where: { id: u.id },
+      data: {
+        passwordHash: await argon2.hash(b.newPassword, ARGON),
+        mustChangePassword: false,
+        ...(u.publicKey ? { encryptedPrivateKey: b.encryptedPrivateKey, keySalt: b.keySalt } : {}),
+      },
+    });
+    // Sign out every other session of this account.
+    await prisma.session.deleteMany({ where: { userId: u.id, id: { not: req.staff!.sessionId } } });
+    await audit({ actorType: u.role === 'ADMIN' ? 'ADMIN' : 'HANDLER', actorId: u.id, action: 'PASSWORD_CHANGED' });
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
 
 staffAuthRouter.post('/logout', async (req, res, next) => {
   try {

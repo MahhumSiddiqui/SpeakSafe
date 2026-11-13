@@ -52,9 +52,14 @@ export function StaffLayout({ children, wide = true }: { children: ReactNode; wi
   const { prefs, update } = useDisplay();
   const [display, setDisplay] = useState(false);
   const signedIn = status === 'in' && me;
-  const nav = me?.role === 'ADMIN'
-    ? [{ to: '/admin', icon: 'shield', label: 'Admin console' }]
-    : [{ to: '/staff', icon: 'folder', label: 'My cases' }];
+  const nav = (me?.role === 'ADMIN'
+    ? [
+        { to: '/admin', icon: 'users', label: 'Accounts' },
+        { to: '/admin/categories', icon: 'folder', label: 'Categories' },
+        { to: '/admin/audit', icon: 'shield', label: 'Audit log' },
+        { to: '/admin/stats', icon: 'chart', label: 'Statistics' },
+      ]
+    : [{ to: '/staff', icon: 'folder', label: 'My cases' }]).concat([{ to: '/staff/account', icon: 'key', label: 'My account' }]);
 
   return (
     <div className="flex min-h-screen flex-col bg-bg text-text">
