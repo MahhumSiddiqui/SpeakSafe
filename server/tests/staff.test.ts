@@ -39,6 +39,8 @@ let h1: Awaited<ReturnType<typeof signInWithSetup>>;
 let h2: Awaited<ReturnType<typeof signInWithSetup>>;
 let h3: Awaited<ReturnType<typeof signInWithSetup>>;
 let caseId = '';
+let reporter: Sess = { cookie: '', csrf: '', id: '' };
+const caseAuthKey = b();
 
 const DEMO = ['handler1@speaksafe.test', 'handler2@speaksafe.test', 'handler3@speaksafe.test'];
 let paused: string[] = [];
@@ -59,6 +61,7 @@ beforeAll(async () => {
     recSalt: b(16), recAuthKey: b(), masterKeyRecEnc: b(72), publicKey: b(), secretKeyEnc: b(72),
   });
   const rs = { cookie: cookieOf(rep), csrf: rep.body.csrfToken, id: '' };
+  reporter = rs;
   const prep = await as(rs).post('/api/reports/prepare').send({ excluded: [h3.id] });
   const nonce = b(24); const ciphertext = b(100);
   const fingerprint = createHash('sha256').update(Buffer.concat([Buffer.from(nonce, 'base64'), Buffer.from(ciphertext, 'base64')])).digest('hex');
@@ -66,7 +69,7 @@ beforeAll(async () => {
   const sub = await as(rs).post('/api/reports').send({
     token: prep.body.token, categoryId: cat, mode: 'ANONYMOUS', aboutOther: false, nonce, ciphertext, fingerprint,
     sealedKeys: Object.fromEntries(prep.body.readers.map((r: { id: string }) => [r.id, b(80)])),
-    reporterPublicKey: b(), reporterSealedKey: b(80), caseAuthKey: b(),
+    reporterPublicKey: b(), reporterSealedKey: b(80), caseAuthKey,
   });
   expect(sub.status).toBe(201);
   caseId = sub.body.caseId;
@@ -109,6 +112,26 @@ describe('staff sign-in and MFA', () => {
   it('requires a session, and the CSRF token for changes', async () => {
     expect((await request(app).get('/api/staff/cases')).status).toBe(401);
     expect((await request(app).post('/api/staff/ping').set('Cookie', h1.cookie)).status).toBe(403);
+  });
+});
+
+describe('encrypted messages', () => {
+  it('flows both ways, flags new messages, and can never be changed', async () => {
+    const sent = await as(reporter).post(`/api/reporter/cases/${caseId}/messages`).set('X-Case-Auth', caseAuthKey).send({ nonce: b(24), ciphertext: b(60) });
+    expect(sent.status).toBe(201);
+    expect((await as(reporter).post(`/api/reporter/cases/${caseId}/messages`).set('X-Case-Auth', b()).send({ nonce: b(24), ciphertext: b(60) })).status).toBe(404);
+    expect((await as(h2).get('/api/staff/cases')).body.find((c: { id: string }) => c.id === caseId).newMessage).toBe(true);
+    const d = await as(h2).get(`/api/staff/cases/${caseId}`);
+    expect(d.body.messages.at(-1).from).toBe('reporter');
+    expect(d.body.templates.length).toBeGreaterThan(0);
+    expect((await as(h2).get('/api/staff/cases')).body.find((c: { id: string }) => c.id === caseId).newMessage).toBe(false);
+    expect((await as(h2).post(`/api/staff/cases/${caseId}/messages`).send({ nonce: b(24), ciphertext: b(60) })).status).toBe(201);
+    expect((await as(h3).post(`/api/staff/cases/${caseId}/messages`).send({ nonce: b(24), ciphertext: b(60) })).status).toBe(404);
+    const r = await as(reporter).get(`/api/reporter/cases/${caseId}`).set('X-Case-Auth', caseAuthKey);
+    expect(r.body.messages.map((m: { from: string }) => m.from)).toEqual(['me', 'committee']);
+    expect(r.body.firstViewedAt).toBeTruthy();
+    await expect(prisma.message.update({ where: { id: sent.body.id }, data: { ciphertext: b(60) } })).rejects.toThrow();
+    await expect(prisma.message.delete({ where: { id: sent.body.id } })).rejects.toThrow();
   });
 });
 

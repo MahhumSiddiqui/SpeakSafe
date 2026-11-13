@@ -6,6 +6,7 @@ import { Icon, Logo } from './Icon';
 import { DisplayPanel } from '../display/DisplayPanel';
 import { useIdleLock, useReporter } from '../auth/ReporterAuth';
 import { useDisplay, type Theme } from '../display/DisplayProvider';
+import { useUnread } from '../lib/unread';
 
 const THEME_ICONS: { id: Theme; icon: string }[] = [
   { id: 'light', icon: 'sun' },
@@ -76,9 +77,11 @@ function IdleWarning() {
 // UI-3: every reporter page has Quick exit, language, Display & reading; logged-in pages add navigation.
 export function Layout({ children, reporter = true, narrow = false, focus = false }: { children: ReactNode; reporter?: boolean; narrow?: boolean; focus?: boolean }) {
   const { t } = useTranslation();
-  const { status, logout } = useReporter();
+  const { status, logout, session } = useReporter();
   const [displayOpen, setDisplayOpen] = useState(false);
   const loggedIn = reporter && status === 'in';
+  const unread = useUnread(loggedIn ? session?.masterKey : undefined);
+  const badge = (to: string) => (to === '/cases' && unread?.total ? <span className="count ms-auto" aria-label={`${unread.total} new`}>{unread.total}</span> : null);
 
   return (
     <div className="flex min-h-screen flex-col bg-bg text-text">
@@ -111,6 +114,7 @@ export function Layout({ children, reporter = true, narrow = false, focus = fals
                 <NavLink key={n.to} to={n.to} className={({ isActive }) => `flex min-h-12 items-center gap-3 rounded-xl px-3.5 font-semibold no-underline ${isActive ? 'bg-primary-soft text-primary' : 'text-text-2 hover:bg-surface-2'}`}>
                   <Icon name={n.icon} size={20} />
                   {t(n.key)}
+                  {badge(n.to)}
                 </NavLink>
               ))}
             </nav>
@@ -138,7 +142,8 @@ export function Layout({ children, reporter = true, narrow = false, focus = fals
       {loggedIn && !focus && (
         <nav aria-label={t('nav.label')} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-surface px-1 pt-1.5 pb-2.5 md:hidden">
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => `flex flex-col items-center gap-0.5 py-1.5 text-xs font-semibold no-underline ${isActive ? 'text-primary' : 'text-muted'}`}>
+            <NavLink key={n.to} to={n.to} className={({ isActive }) => `relative flex flex-col items-center gap-0.5 py-1.5 text-xs font-semibold no-underline ${isActive ? 'text-primary' : 'text-muted'}`}>
+              {n.to === '/cases' && !!unread?.total && <span className="count absolute end-[22%] top-0 !h-[1.1rem] !min-w-[1.1rem] !text-[.65rem]">{unread.total}</span>}
               <Icon name={n.icon} size={22} />
               {t(n.key)}
             </NavLink>

@@ -422,10 +422,28 @@
     "progress": "Progress",
     "now": "Now",
     "messagesTitle": "Messages",
-    "messagesSoon": "When the committee writes to you, their messages will appear here.",
+    "messagesSoon": "No messages yet. When the committee writes to you, it will appear here. You can also write to them.",
     "voiceN": "Voice note {{n}}",
     "opening": "Unlocking…",
     "open": "Unlock and open",
-    "download": "Download"
+    "download": "Download",
+    "firstRead": "First read by the committee: {{date}}",
+    "addMore": "Add more information",
+    "addMoreHint": "Remembered something, or found more evidence? Add photos or PDFs. Hidden details are removed first."
+  },
+  "messages": {
+    "you": "You",
+    "committee": "Committee",
+    "locked": "Encrypted · only you and the assigned members",
+    "play": "Play voice note",
+    "placeholder": "Write a message… (Ctrl + Enter to send)",
+    "send": "Send",
+    "voice": "Voice note",
+    "cancelVoice": "Cancel voice note",
+    "sending": "Sending…",
+    "voiceReady": "Voice note ready",
+    "closed": "This case is closed, so new messages can't be sent.",
+    "newCount_one": "{{count}} new message",
+    "newCount_other": "{{count}} new messages"
   }
 }

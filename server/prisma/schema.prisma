@@ -295,6 +295,7 @@ model Attachment {
   kind           String        @default("file") // "image" | "pdf" | "voice"
   size           Int
   fingerprint    String        @default("") // SHA-256 of the stored ciphertext
+  purpose        String        @default("evidence") // "evidence" | "message" (a voice note sent in a conversation)
   ciphertext     Bytes // metadata stripped and encrypted in the browser
   nonce          String
   createdAt      DateTime      @default(now())

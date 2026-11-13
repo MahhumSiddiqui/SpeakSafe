@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import { requireReporter } from '../lib/reporterSession.js';
 import { requireCaseAuth } from '../lib/caseAuth.js';
+import { audit } from '../lib/audit.js';
 import { HttpError } from '../middleware/error.js';
 
 // The reporter's own encrypted data: case list (vault), the unfinished draft and its files,
@@ -99,14 +100,38 @@ reporterDataRouter.delete('/draft/files/:id', async (req, res, next) => {
 });
 
 // ---- The reporter's own cases (proved with the per-case key, not the account) ----
+const msgBody = z.object({ nonce: b64(64), ciphertext: b64(40_000) });
+
+// Messages are encrypted in the browser with the case key; they can never be edited or deleted.
+reporterDataRouter.post('/cases/:id/messages', async (req, res, next) => {
+  try {
+    const id = String(req.params.id);
+    await requireCaseAuth(req, id);
+    const b = msgBody.parse(req.body);
+    const m = await prisma.message.create({ data: { caseId: id, senderType: 'REPORTER', nonce: b.nonce, ciphertext: b.ciphertext, keys: {} } });
+    await audit({ actorType: 'REPORTER', action: 'MESSAGE_SENT', targetType: 'CASE', targetId: id });
+    res.status(201).json({ id: m.id, createdAt: m.createdAt });
+  } catch (e) {
+    next(e);
+  }
+});
 reporterDataRouter.get('/cases/:id', async (req, res, next) => {
   try {
     const id = String(req.params.id);
     const access = await requireCaseAuth(req, id);
     const c = await prisma.case.findUniqueOrThrow({
       where: { id },
-      include: { category: { select: { name: true } }, attachments: { select: { id: true, kind: true, mimeType: true, size: true, createdAt: true }, orderBy: { createdAt: 'asc' } } },
+      include: {
+        category: { select: { name: true } },
+        attachments: { where: { purpose: 'evidence' }, select: { id: true, kind: true, mimeType: true, size: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
+        messages: { select: { id: true, senderType: true, nonce: true, ciphertext: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
+      },
     });
+    // Progress the reporter may see: when the committee first opened the case, and each status change.
+    const [firstView, changes] = await Promise.all([
+      prisma.auditLog.findFirst({ where: { targetType: 'CASE', targetId: id, action: 'CASE_VIEWED' }, orderBy: { id: 'asc' }, select: { at: true } }),
+      prisma.auditLog.findMany({ where: { targetType: 'CASE', targetId: id, action: { in: ['STATUS_CHANGED', 'CLOSURE_REQUESTED', 'CASE_CLOSED', 'CLOSURE_REJECTED'] } }, orderBy: { id: 'asc' }, select: { at: true, action: true, details: true } }),
+    ]);
     res.json({
       id: c.id,
       status: c.status,
@@ -120,6 +145,12 @@ reporterDataRouter.get('/cases/:id', async (req, res, next) => {
       fingerprint: c.fingerprint,
       reporterSealedKey: access.reporterSealedKey,
       attachments: c.attachments,
+      firstViewedAt: firstView?.at ?? null,
+      history: changes.map((h) => ({
+        at: h.at,
+        to: h.action === 'STATUS_CHANGED' ? (h.details as { to: string }).to : h.action === 'CASE_CLOSED' ? 'CLOSED' : h.action === 'CLOSURE_REQUESTED' ? 'PENDING_CLOSURE' : null,
+      })).filter((h) => h.to),
+      messages: c.messages.map((m) => ({ id: m.id, from: m.senderType === 'REPORTER' ? 'me' : 'committee', nonce: m.nonce, ciphertext: m.ciphertext, createdAt: m.createdAt })),
     });
   } catch (e) {
     next(e);

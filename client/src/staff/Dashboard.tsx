@@ -7,7 +7,7 @@ import { Busy, FormError } from '../components/Field';
 import { api, ApiError } from '../lib/api';
 import { STATUS_BADGE, type Status } from '../pages/cases/caseData';
 
-interface Row { id: string; category: string; mode: string; status: Status; aboutOther: boolean; submittedAt: string; lastActionAt: string | null; waiting: boolean; needsMyApproval: boolean }
+interface Row { id: string; category: string; mode: string; status: Status; aboutOther: boolean; submittedAt: string; lastActionAt: string | null; waiting: boolean; needsMyApproval: boolean; newMessage: boolean }
 const STATUS_LABEL: Record<Status, string> = { RECEIVED: 'Received', UNDER_REVIEW: 'Under review', INQUIRY: 'Inquiry', PENDING_CLOSURE: 'Closure pending', CLOSED: 'Closed' };
 const MODE: Record<string, string> = { ANONYMOUS: 'Anonymous', CONFIDENTIAL: 'Confidential', NAMED: 'Named' };
 const ago = (d: string) => {
@@ -33,6 +33,7 @@ export default function Dashboard() {
   const count = (s: Status[]) => (rows ?? []).filter((r) => s.includes(r.status)).length;
   const waiting = (rows ?? []).filter((r) => r.waiting).length;
   const approvals = (rows ?? []).filter((r) => r.needsMyApproval).length;
+  const newMsgs = (rows ?? []).filter((r) => r.newMessage).length;
   const hour = new Date().getHours();
 
   const stat = (icon: string, label: string, n: number, tone = '') => (
@@ -59,13 +60,14 @@ export default function Dashboard() {
         {me?.recoveryCodesLeft !== undefined && me.recoveryCodesLeft <= 3 && (
           <div className="rounded-2xl border-2 border-accent bg-accent-soft p-3.5">You have only {me.recoveryCodesLeft} recovery codes left. Ask the administrator to reset your two-step sign-in to get new ones.</div>
         )}
-        {(waiting > 0 || approvals > 0) && (
+        {(waiting > 0 || approvals > 0 || newMsgs > 0) && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border-2 border-accent bg-accent-soft p-4">
             <span className="flex items-center gap-3">
               <span className="icon-tile accent !bg-surface"><Icon name="clock" /></span>
               <span>
                 {waiting > 0 && <b className="block">{waiting === 1 ? '1 case has' : `${waiting} cases have`} had no action for more than 7 days.</b>}
                 {approvals > 0 && <span className="block">{approvals === 1 ? '1 closure needs' : `${approvals} closures need`} your approval.</span>}
+                {newMsgs > 0 && <span className="block">{newMsgs === 1 ? '1 reporter has' : `${newMsgs} reporters have`} sent you a new message.</span>}
                 <span className="text-sm text-muted">Reporters see "waiting" on their timeline, so a short update helps.</span>
               </span>
             </span>
@@ -110,6 +112,7 @@ export default function Dashboard() {
                       <span className="flex flex-wrap gap-1.5">
                         {r.waiting && <span className="badge badge-inq"><Icon name="clock" size={13} />Waiting too long</span>}
                         {r.needsMyApproval && <span className="badge badge-pend"><Icon name="users" size={13} />Needs your approval</span>}
+                        {r.newMessage && <span className="badge badge-rec"><Icon name="mail" size={13} />New message</span>}
                       </span>
                     </td>
                   </tr>

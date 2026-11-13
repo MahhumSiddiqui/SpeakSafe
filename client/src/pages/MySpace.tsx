@@ -8,6 +8,7 @@ import { HelpNow } from '../components/HelpNow';
 import { useReporter } from '../auth/ReporterAuth';
 import { loadDraft } from './report/draft';
 import { loadVault } from '../lib/vault';
+import { useUnread } from '../lib/unread';
 
 // The reporter's home after logging in. Draft, case and "Not alone" cards appear here as those features land.
 export default function MySpace() {
@@ -20,6 +21,7 @@ export default function MySpace() {
 
   const [draft, setDraft] = useState<{ step: number; updatedAt: string } | null>(null);
   const [caseCount, setCaseCount] = useState<number | null>(null);
+  const unread = useUnread(session?.masterKey);
   useEffect(() => {
     if (!session) return;
     loadDraft(session.masterKey).then((d) => setDraft(d ? { step: d.draft.step, updatedAt: d.updatedAt } : null)).catch(() => {});
@@ -27,7 +29,7 @@ export default function MySpace() {
   }, [session]);
 
   const tiles = [
-    { to: '/cases', icon: 'folder', title: t('nav.cases'), sub: caseCount ? t('space.casesCount', { count: caseCount }) : t('space.casesSub') },
+    { to: '/cases', icon: 'folder', title: t('nav.cases'), sub: unread?.total ? t('messages.newCount', { count: unread.total }) : caseCount ? t('space.casesCount', { count: caseCount }) : t('space.casesSub'), badge: unread?.total ?? 0 },
     { to: '/journal', icon: 'book', title: t('nav.journal'), sub: t('space.journalSub') },
     { to: '/support', icon: 'lifebuoy', title: t('nav.support'), sub: t('space.supportSub') },
     { to: '/options', icon: 'info', title: t('space.options'), sub: t('space.optionsSub') },
@@ -77,7 +79,7 @@ export default function MySpace() {
             <div className="grid grid-cols-2 gap-3 lg:gap-4">
               {tiles.map((x) => (
                 <Link key={x.to} to={x.to} className="card flex flex-col items-start gap-2 lg:flex-row lg:items-center lg:gap-4 lg:p-5">
-                  <span className="icon-tile sm lg:h-12 lg:w-12"><Icon name={x.icon} size={22} /></span>
+                  <span className="relative icon-tile sm lg:h-12 lg:w-12"><Icon name={x.icon} size={22} />{'badge' in x && !!x.badge && <span className="count absolute -end-2 -top-2">{x.badge}</span>}</span>
                   <span className="flex flex-col">
                     <span className="font-bold">{x.title}</span>
                     <span className="text-[.8rem] text-muted lg:text-sm">{x.sub}</span>

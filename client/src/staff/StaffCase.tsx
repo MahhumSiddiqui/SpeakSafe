@@ -8,6 +8,10 @@ import { Busy, FormError } from '../components/Field';
 import { api, ApiError } from '../lib/api';
 import { formatDuration, formatSize } from '../lib/media';
 import { STATUS_BADGE, type ReportContent, type Status } from '../pages/cases/caseData';
+import { Composer, MessageThread, type ThreadItem } from '../components/MessageThread';
+import { decryptMessage, encryptMessage } from '../lib/messages';
+import { encryptBytes } from '../lib/reportCrypto';
+import { postBytes } from '../lib/binary';
 
 interface Detail {
   id: string; category: string; mode: 'ANONYMOUS' | 'CONFIDENTIAL' | 'NAMED'; status: Status; aboutOther: boolean;
@@ -17,6 +21,8 @@ interface Detail {
   notes: { id: string; by: string; mine: boolean; nonce: string; ciphertext: string; createdAt: string }[];
   closures: { id: string; status: string; requestedBy: string; requestedByMe: boolean; approvedBy: string | null; requestedAt: string; decidedAt: string | null }[];
   activity: { at: string; action: string; by: string; details: Record<string, string> | null }[];
+  messages: { id: string; from: 'reporter' | 'committee'; by: string | null; mine: boolean; nonce: string; ciphertext: string; createdAt: string }[];
+  templates: { id: number; title: string; body: string }[];
 }
 const STATUS_LABEL: Record<Status, string> = { RECEIVED: 'Received', UNDER_REVIEW: 'Under review', INQUIRY: 'Inquiry', PENDING_CLOSURE: 'Closure pending', CLOSED: 'Closed' };
 const WHEN: Record<string, string> = { week: 'This week', month: 'This month', earlier: 'Earlier', unsure: 'Not sure' };
@@ -36,6 +42,7 @@ function activityText(a: Detail['activity'][number]) {
     case 'CLOSURE_REQUESTED': return `${a.by} asked to close the case`;
     case 'CASE_CLOSED': return `${a.by} approved closure; case closed`;
     case 'CLOSURE_REJECTED': return `${a.by} did not approve closure`;
+    case 'MESSAGE_SENT': return a.by === 'Reporter' ? 'Reporter sent a message' : `${a.by} sent a message to the reporter`;
     default: return a.action;
   }
 }
@@ -49,6 +56,7 @@ export default function StaffCase() {
   const [contentKey, setContentKey] = useState<Uint8Array | null>(null);
   const [sealOk, setSealOk] = useState<boolean | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [thread, setThread] = useState<ThreadItem[]>([]);
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
@@ -66,6 +74,9 @@ export default function StaffCase() {
     const plain: Record<string, string> = {};
     for (const n of det.notes) plain[n.id] = await decryptNote(ck, n.nonce, n.ciphertext).catch(() => '(This note could not be opened.)');
     setNotes(plain);
+    const items: ThreadItem[] = [];
+    for (const m of det.messages) items.push({ id: m.id, mine: m.mine, who: m.from === 'reporter' ? 'Reporter' : m.mine ? 'You' : (m.by ?? 'Committee'), at: m.createdAt, payload: await decryptMessage(ck, m) });
+    setThread(items);
     setContentKey(ck);
     setD(det);
   }, [keys, id]);
@@ -117,6 +128,25 @@ export default function StaffCase() {
       nav('/staff', { replace: true });
     } catch (e) { setError(err(e)); recuseRef.current?.close(); } finally { setBusy(''); }
   };
+
+  const sendMessage = async (text: string, voice?: { bytes: Uint8Array; mime: string; seconds: number }) => {
+    if (!contentKey || !d) return;
+    setError('');
+    try {
+      let v: { id: string; seconds: number } | undefined;
+      if (voice) {
+        const r = await postBytes(`/staff/cases/${d.id}/attachments`, await encryptBytes(contentKey, voice.bytes), { 'X-Attachment-Type': voice.mime });
+        v = { id: r.id, seconds: voice.seconds };
+      }
+      await api(`/staff/cases/${d.id}/messages`, { body: await encryptMessage(contentKey, { text, voice: v }) });
+      await load();
+      showToast('Message sent to the reporter');
+    } catch (e) {
+      setError(err(e));
+      throw e;
+    }
+  };
+  const loadVoice = async (aid: string) => URL.createObjectURL(new Blob([(await fetchStaffAttachment(d!.id, aid, contentKey!)) as BlobPart], { type: 'audio/webm' }));
 
   // Ctrl + Enter adds a note (keyboard shortcut for frequent users).
   const onNoteKey = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) addNote(); };
@@ -197,6 +227,18 @@ export default function StaffCase() {
                     </div>
                   )}
                   <p className="text-xs text-muted">Readers: {d.readers.map((r) => (r.me ? 'you' : r.displayName)).join(' and ')}.</p>
+                </section>
+
+                <section className="card flex flex-col gap-4 lg:p-6" aria-labelledby="msg-h">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 id="msg-h" className="text-lg font-bold">Messages with the reporter</h2>
+                    <span className="badge badge-clo"><Icon name="lock" size={13} />Encrypted · only the reporter and readers</span>
+                  </div>
+                  <MessageThread items={thread} loadVoice={loadVoice} empty="No messages yet. A short, kind update helps the reporter feel heard." />
+                  {d.status === 'CLOSED' ? <p className="text-sm text-muted">This case is closed.</p> : (
+                    <Composer onSend={sendMessage} templates={d.templates}
+                      labels={{ placeholder: 'Write to the reporter… (Ctrl + Enter to send)', send: 'Send', voice: 'Voice note', cancelVoice: 'Cancel voice note', sending: 'Sending…', templates: 'Templates:', voiceReady: 'Voice note ready' }} />
+                  )}
                 </section>
               </div>
 

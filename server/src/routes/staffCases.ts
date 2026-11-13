@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { Router, raw } from 'express';
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { CaseStatus } from '@prisma/client';
 import { prisma } from '../db.js';
@@ -40,9 +41,16 @@ staffCasesRouter.get('/', async (req, res, next) => {
     const recused = (await prisma.recusal.findMany({ where: { handlerId: me }, select: { caseId: true } })).map((r) => r.caseId);
     const cases = await prisma.case.findMany({
       where: { keys: { some: { handlerId: me } }, id: { notIn: recused } },
-      include: { category: { select: { name: true } }, closures: { where: { status: 'PENDING' }, select: { requestedById: true } } },
+      include: {
+        category: { select: { name: true } },
+        closures: { where: { status: 'PENDING' }, select: { requestedById: true } },
+        messages: { where: { senderType: 'REPORTER' }, orderBy: { createdAt: 'desc' }, take: 1, select: { createdAt: true } },
+      },
       orderBy: { submittedAt: 'desc' },
     });
+    // "New message": the reporter wrote after this member last opened the case.
+    const views = await prisma.auditLog.groupBy({ by: ['targetId'], where: { action: 'CASE_VIEWED', actorId: me, targetId: { in: cases.map((c) => c.id) } }, _max: { at: true } });
+    const lastView = new Map(views.map((v) => [v.targetId, v._max.at]));
     const now = Date.now();
     res.json(cases.map((c) => {
       const last = (c.lastHandlerActionAt ?? c.submittedAt).getTime();
@@ -51,6 +59,7 @@ staffCasesRouter.get('/', async (req, res, next) => {
         submittedAt: c.submittedAt, lastActionAt: c.lastHandlerActionAt,
         waiting: c.status !== 'CLOSED' && now - last > WAITING_DAYS * 86_400_000,
         needsMyApproval: c.closures.some((x) => x.requestedById !== me),
+        newMessage: !!c.messages[0] && (!lastView.get(c.id) || c.messages[0].createdAt > lastView.get(c.id)!),
       };
     }));
   } catch (e) {
@@ -65,11 +74,13 @@ staffCasesRouter.get('/:id', async (req, res, next) => {
     const { c, mine, readers } = await myCase(id, me);
     // Every opening of a case is recorded (FR: who viewed what, and when).
     await audit({ actorType: 'HANDLER', actorId: me, action: 'CASE_VIEWED', targetType: 'CASE', targetId: id });
-    const [attachments, notes, closures, events] = await Promise.all([
-      prisma.attachment.findMany({ where: { caseId: id }, select: { id: true, kind: true, mimeType: true, size: true, createdAt: true }, orderBy: { createdAt: 'asc' } }),
+    const [attachments, notes, closures, events, messages, templates] = await Promise.all([
+      prisma.attachment.findMany({ where: { caseId: id, purpose: 'evidence' }, select: { id: true, kind: true, mimeType: true, size: true, createdAt: true }, orderBy: { createdAt: 'asc' } }),
       prisma.caseNote.findMany({ where: { caseId: id }, include: { handler: { select: { displayName: true } } }, orderBy: { createdAt: 'asc' } }),
       prisma.closureApproval.findMany({ where: { caseId: id }, include: { requestedBy: { select: { displayName: true } }, approvedBy: { select: { displayName: true } } }, orderBy: { requestedAt: 'desc' } }),
       prisma.auditLog.findMany({ where: { targetType: 'CASE', targetId: id }, orderBy: { id: 'desc' }, take: 50 }),
+      prisma.message.findMany({ where: { caseId: id }, include: { handler: { select: { displayName: true } } }, orderBy: { createdAt: 'asc' } }),
+      prisma.replyTemplate.findMany({ orderBy: { id: 'asc' } }),
     ]);
     const names = new Map((await prisma.user.findMany({ where: { id: { in: events.map((e) => e.actorId).filter(Boolean) as string[] } }, select: { id: true, displayName: true } })).map((u) => [u.id, u.displayName]));
     res.json({
@@ -81,6 +92,8 @@ staffCasesRouter.get('/:id', async (req, res, next) => {
       attachments,
       notes: notes.map((n) => ({ id: n.id, by: n.handler.displayName, mine: n.handlerId === me, nonce: n.nonce, ciphertext: n.ciphertext, createdAt: n.createdAt })),
       closures: closures.map((x) => ({ id: x.id, status: x.status, requestedBy: x.requestedBy.displayName, requestedByMe: x.requestedById === me, approvedBy: x.approvedBy?.displayName ?? null, requestedAt: x.requestedAt, decidedAt: x.decidedAt })),
+      messages: messages.map((m) => ({ id: m.id, from: m.senderType === 'REPORTER' ? 'reporter' : 'committee', by: m.handler?.displayName ?? null, mine: m.handlerId === me, nonce: m.nonce, ciphertext: m.ciphertext, createdAt: m.createdAt })),
+      templates: templates.map((x) => ({ id: x.id, title: x.title, body: x.body })),
       activity: events.map((e) => ({ at: e.at, action: e.action, by: e.actorId ? names.get(e.actorId) ?? 'Committee member' : e.actorType === 'REPORTER' ? 'Reporter' : 'System', details: e.details })),
     });
   } catch (e) {
@@ -113,6 +126,41 @@ staffCasesRouter.patch('/:id/status', async (req, res, next) => {
     await prisma.case.update({ where: { id }, data: { status, lastHandlerActionAt: new Date() } });
     await audit({ actorType: 'HANDLER', actorId: req.staff!.userId, action: 'STATUS_CHANGED', targetType: 'CASE', targetId: id, details: { from: c.status, to: status } });
     res.json({ status, previous: c.status });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Messages to the reporter, encrypted in the browser with the case key. Add-only.
+staffCasesRouter.post('/:id/messages', async (req, res, next) => {
+  try {
+    const id = String(req.params.id);
+    const b = z.object({ nonce: b64(64), ciphertext: b64(40_000) }).parse(req.body);
+    const { c } = await myCase(id, req.staff!.userId);
+    if (c.status === 'CLOSED') throw new HttpError(409, 'This case is closed.');
+    const m = await prisma.message.create({ data: { caseId: id, senderType: 'HANDLER', handlerId: req.staff!.userId, nonce: b.nonce, ciphertext: b.ciphertext, keys: {} } });
+    await touch(id);
+    await audit({ actorType: 'HANDLER', actorId: req.staff!.userId, action: 'MESSAGE_SENT', targetType: 'CASE', targetId: id });
+    res.status(201).json({ id: m.id, createdAt: m.createdAt });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// A committee member's voice note for a message (encrypted in their browser with the case key).
+staffCasesRouter.post('/:id/attachments', raw({ type: 'application/octet-stream', limit: 15 * 1024 * 1024 }), async (req, res, next) => {
+  try {
+    const id = String(req.params.id);
+    await myCase(id, req.staff!.userId);
+    const mimeType = String(req.get('X-Attachment-Type') ?? '');
+    if (!['audio/webm', 'audio/ogg', 'audio/mp4'].includes(mimeType)) throw new HttpError(400, 'Only voice notes can be attached to messages.');
+    const body = req.body as Buffer;
+    if (!Buffer.isBuffer(body) || body.length < 41) throw new HttpError(400, 'The recording is empty.');
+    const a = await prisma.attachment.create({
+      data: { caseId: id, kind: 'voice', purpose: 'message', mimeType, size: body.length, nonce: body.subarray(0, 24).toString('base64'), ciphertext: new Uint8Array(body.subarray(24)), fingerprint: createHash('sha256').update(body).digest('hex') },
+      select: { id: true },
+    });
+    res.status(201).json(a);
   } catch (e) {
     next(e);
   }

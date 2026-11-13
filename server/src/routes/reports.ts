@@ -114,6 +114,8 @@ reportsRouter.post('/:id/attachments', raw({ type: 'application/octet-stream', l
     await requireCaseAuth(req, caseId);
     const kind = String(req.get('X-Attachment-Kind') ?? '') as keyof typeof KINDS;
     const mimeType = String(req.get('X-Attachment-Type') ?? '');
+    const purpose = String(req.get('X-Attachment-Purpose') ?? 'evidence');
+    if (purpose !== 'evidence' && !(purpose === 'message' && kind === 'voice')) throw new HttpError(400, 'Only voice notes can be sent as messages.');
     if (!(kind in KINDS) || !(KINDS[kind] as readonly string[]).includes(mimeType)) throw new HttpError(400, 'This type of file is not accepted.');
     const body = req.body as Buffer;
     if (!Buffer.isBuffer(body) || body.length < 41) throw new HttpError(400, 'The file is empty.');
@@ -123,6 +125,7 @@ reportsRouter.post('/:id/attachments', raw({ type: 'application/octet-stream', l
       data: {
         caseId,
         kind,
+        purpose,
         mimeType,
         size: body.length,
         nonce: nonce.toString('base64'),
@@ -131,7 +134,7 @@ reportsRouter.post('/:id/attachments', raw({ type: 'application/octet-stream', l
       },
       select: { id: true, fingerprint: true },
     });
-    await audit({ actorType: 'REPORTER', action: 'ATTACHMENT_ADDED', targetType: 'CASE', targetId: caseId, details: { kind } });
+    if (purpose === 'evidence') await audit({ actorType: 'REPORTER', action: 'ATTACHMENT_ADDED', targetType: 'CASE', targetId: caseId, details: { kind } });
     res.status(201).json(a);
   } catch (e) {
     next(e);

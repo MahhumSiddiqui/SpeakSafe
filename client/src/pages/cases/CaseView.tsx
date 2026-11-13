@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Layout } from '../../components/Layout';
@@ -6,7 +6,14 @@ import { Icon } from '../../components/Icon';
 import { ReadAloud } from '../../components/ReadAloud';
 import { Busy, FormError } from '../../components/Field';
 import { useReporter } from '../../auth/ReporterAuth';
-import { loadVault } from '../../lib/vault';
+import { loadVault, markCaseRead } from '../../lib/vault';
+import { MessageThread, Composer, type ThreadItem } from '../../components/MessageThread';
+import { decryptMessage, encryptMessage } from '../../lib/messages';
+import { encryptBytes } from '../../lib/reportCrypto';
+import { postBytes } from '../../lib/binary';
+import { api } from '../../lib/api';
+import { invalidateUnread } from '../../lib/unread';
+import { cleanFile, kindOf, MAX_FILE_BYTES } from '../../lib/media';
 import { errorText } from '../../lib/errors';
 import { formatDuration, formatSize } from '../../lib/media';
 import { fetchAttachment, fetchCase, openCase, STATUS_BADGE, type CaseMeta, type ReportContent, type Status } from './caseData';
@@ -21,22 +28,78 @@ export default function CaseView() {
   const [report, setReport] = useState<ReportContent | null>(null);
   const [keys, setKeys] = useState<{ authKey: string; contentKey: Uint8Array } | null>(null);
   const [error, setError] = useState('');
+  const [thread, setThread] = useState<ThreadItem[]>([]);
+  const [adding, setAdding] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!session || !id) return;
+    const v = (await loadVault(session.masterKey)).cases.find((c) => c.id === id);
+    if (!v) throw new Error('missing');
+    const { meta: m, ck } = await fetchCase(session.masterKey, v);
+    const { report: r, contentKey } = await openCase(m, ck);
+    const items: ThreadItem[] = [];
+    for (const msg of m.messages) {
+      items.push({ id: msg.id, mine: msg.from === 'me', who: msg.from === 'me' ? t('messages.you') : t('messages.committee'), at: msg.createdAt, payload: await decryptMessage(contentKey, msg) });
+    }
+    setThread(items);
+    setMeta(m);
+    setReport(r);
+    setKeys({ authKey: ck.authKey, contentKey });
+    // Reading the case clears its "new message" badge (stored encrypted in the private vault).
+    markCaseRead(session.masterKey, id).then(invalidateUnread).catch(() => {});
+  }, [session, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!session || !id) return;
-    (async () => {
-      const v = (await loadVault(session.masterKey)).cases.find((c) => c.id === id);
-      if (!v) throw new Error('missing');
-      const { meta: m, ck } = await fetchCase(session.masterKey, v);
-      const { report: r, contentKey } = await openCase(m, ck);
-      setMeta(m);
-      setReport(r);
-      setKeys({ authKey: ck.authKey, contentKey });
-    })().catch((e) => setError((e as Error).message === 'missing' ? t('caseView.notFound') : errorText(e, t)));
-  }, [session, id]); // eslint-disable-line react-hooks/exhaustive-deps
+    load().catch((e) => setError((e as Error).message === 'missing' ? t('caseView.notFound') : errorText(e, t)));
+  }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const send = async (text: string, voice?: { bytes: Uint8Array; mime: string; seconds: number }) => {
+    if (!keys || !meta) return;
+    setError('');
+    try {
+      let v: { id: string; seconds: number } | undefined;
+      if (voice) {
+        const r = await postBytes(`/reports/${meta.id}/attachments`, await encryptBytes(keys.contentKey, voice.bytes),
+          { 'X-Case-Auth': keys.authKey, 'X-Attachment-Kind': 'voice', 'X-Attachment-Type': voice.mime, 'X-Attachment-Purpose': 'message' });
+        v = { id: r.id, seconds: voice.seconds };
+      }
+      await api(`/reporter/cases/${meta.id}/messages`, { headers: { 'X-Case-Auth': keys.authKey }, body: await encryptMessage(keys.contentKey, { text, voice: v }) });
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
+      throw e;
+    }
+  };
+
+  const loadVoice = async (aid: string) => {
+    const bytes = await fetchAttachment(meta!.id, aid, keys!.authKey, keys!.contentKey);
+    return URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'audio/webm' }));
+  };
+
+  const addEvidence = async (list: FileList | null) => {
+    if (!list || !keys || !meta) return;
+    setAdding(true);
+    setError('');
+    try {
+      for (const file of Array.from(list).slice(0, 10)) {
+        if (!kindOf(file)) { setError(t('evidence.badType')); continue; }
+        if (file.size > MAX_FILE_BYTES) { setError(t('evidence.tooBig')); continue; }
+        const clean = await cleanFile(file);
+        await postBytes(`/reports/${meta.id}/attachments`, await encryptBytes(keys.contentKey, clean.bytes),
+          { 'X-Case-Auth': keys.authKey, 'X-Attachment-Kind': clean.kind, 'X-Attachment-Type': clean.mime, 'X-Attachment-Purpose': 'evidence' });
+      }
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setAdding(false);
+    }
+  };
 
   const fmt = (d: string) => new Date(d).toLocaleDateString(i18n.language === 'ur' ? 'ur-PK' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const stage = meta ? (meta.status === 'PENDING_CLOSURE' ? 2 : FLOW.indexOf(meta.status)) : 0;
+  const reachedAt = (s: Status) => meta?.history.find((h) => h.to === s)?.at;
+  const locale = i18n.language === 'ur' ? 'ur-PK' : 'en-US';
 
   return (
     <Layout>
@@ -93,18 +156,34 @@ export default function CaseView() {
                         <span className="pb-4">
                           <span className={i <= stage ? 'font-semibold' : 'text-muted'}>{t(`status.${s}`)}</span>
                           {i === 0 && <span className="block text-xs text-muted">{fmt(meta.submittedAt)}</span>}
+                          {i === 0 && meta.firstViewedAt && <span className="block text-xs text-muted">{t('caseView.firstRead', { date: fmt(meta.firstViewedAt) })}</span>}
+                          {i > 0 && i <= stage && reachedAt(s) && <span className="block text-xs text-muted">{fmt(reachedAt(s)!)}</span>}
                           {i === stage && i > 0 && <span className="ms-2 badge badge-rev">{t('caseView.now')}</span>}
                         </span>
                       </li>
                     ))}
                   </ol>
                 </section>
-                <section className="card-soft flex flex-col gap-2 text-[.95rem]">
-                  <h2 className="font-bold">{t('caseView.messagesTitle')}</h2>
-                  <p className="text-muted">{t('caseView.messagesSoon')}</p>
+                <section className="card flex flex-col gap-3">
+                  <h2 className="font-bold">{t('caseView.addMore')}</h2>
+                  <p className="text-sm text-muted">{t('caseView.addMoreHint')}</p>
+                  <label className={`btn btn-outline btn-sm cursor-pointer ${adding ? 'pointer-events-none opacity-60' : ''}`}>
+                    {adding ? <Busy label={t('evidence.cleaning')} /> : <><Icon name="upload" size={16} />{t('evidence.add')}</>}
+                    <input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" className="sr-only" onChange={(e) => { addEvidence(e.target.files); e.target.value = ''; }} />
+                  </label>
                 </section>
               </aside>
             </div>
+            <section className="card flex flex-col gap-4 lg:p-6" aria-labelledby="msg-h">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 id="msg-h" className="text-lg font-bold">{t('caseView.messagesTitle')}</h2>
+                <span className="badge badge-clo"><Icon name="lock" size={13} />{t('messages.locked')}</span>
+              </div>
+              <MessageThread items={thread} loadVoice={loadVoice} locale={locale} empty={t('caseView.messagesSoon')} playLabel={t('messages.play')} />
+              {meta.status === 'CLOSED' ? <p className="text-sm text-muted">{t('messages.closed')}</p> : (
+                <Composer onSend={send} labels={{ placeholder: t('messages.placeholder'), send: t('messages.send'), voice: t('messages.voice'), cancelVoice: t('messages.cancelVoice'), sending: t('messages.sending'), voiceReady: t('messages.voiceReady') }} />
+              )}
+            </section>
           </>
         )}
       </div>

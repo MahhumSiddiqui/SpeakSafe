@@ -8,12 +8,14 @@ import { useReporter } from '../../auth/ReporterAuth';
 import { loadVault } from '../../lib/vault';
 import { errorText } from '../../lib/errors';
 import { fetchCase, STATUS_BADGE, type CaseMeta } from './caseData';
+import { useUnread } from '../../lib/unread';
 
 export default function MyCases() {
   const { t, i18n } = useTranslation();
   const { session } = useReporter();
   const [cases, setCases] = useState<CaseMeta[] | null>(null);
   const [error, setError] = useState('');
+  const unread = useUnread(session?.masterKey);
 
   useEffect(() => {
     if (!session) return;
@@ -54,6 +56,7 @@ export default function MyCases() {
                     <span className="font-mono text-lg font-bold" dir="ltr">{c.id}</span>
                     <span className={`badge ${STATUS_BADGE[c.status]}`}><span className="h-2 w-2 rounded-full bg-current" />{t(`status.${c.status}`)}</span>
                   </span>
+                  {!!unread?.perCase[c.id] && <span className="badge badge-inq self-start"><Icon name="mail" size={13} />{t('messages.newCount', { count: unread.perCase[c.id] })}</span>}
                   <span className="text-[.95rem]">{t(`categories.${c.category}`, { defaultValue: c.category })} · {t(`mode.${c.mode}.title`)}</span>
                   <span className="text-sm text-muted">{t('cases.sentOn', { date: fmt(c.submittedAt) })}</span>
                 </Link>

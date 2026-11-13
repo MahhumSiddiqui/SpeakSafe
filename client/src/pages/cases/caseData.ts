@@ -8,6 +8,9 @@ export interface CaseMeta {
   id: string; status: Status; category: string; mode: 'ANONYMOUS' | 'CONFIDENTIAL' | 'NAMED'; aboutOther: boolean;
   submittedAt: string; updatedAt: string; nonce: string; ciphertext: string; fingerprint: string; reporterSealedKey: string;
   attachments: { id: string; kind: 'image' | 'pdf' | 'voice'; mimeType: string; size: number; createdAt: string }[];
+  firstViewedAt: string | null;
+  history: { at: string; to: Status }[];
+  messages: { id: string; from: 'me' | 'committee'; nonce: string; ciphertext: string; createdAt: string }[];
 }
 export interface ReportContent {
   category: { name: string }; aboutOther: boolean; description: string; when: string; where: string;
