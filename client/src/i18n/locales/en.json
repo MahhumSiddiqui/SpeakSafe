@@ -283,7 +283,8 @@
       "readers": "Choosing committee members…",
       "locking": "Locking your report…",
       "sending": "Sending…",
-      "files": "Sending your files…"
+      "files": "Sending your files…",
+      "matching": "Making the match code…"
     }
   },
   "categories": {
@@ -711,5 +712,33 @@
         "what": "Help for children and women facing abuse or violence."
       }
     }
+  },
+  "notAlone": {
+    "title": "Send now, or wait until you're not alone?",
+    "intro": "Some people only feel safe reporting if they know someone else has had the same experience. You can choose that here.",
+    "now": "Send now",
+    "nowBody": "The two committee members can read your report straight away.",
+    "hold": "Hold until someone else reports the same person",
+    "holdBody": "Your report is saved, locked and hidden from the committee. If another report names the same person, both are sent together. You can send yours at any time.",
+    "idLabel": "Their university or work ID",
+    "idLabelOptional": "Their university or work ID (optional)",
+    "idHint": "For example a roll number or employee ID. Spaces, dashes and capital letters don't matter. Adding it lets your report be matched with others, even if you send now.",
+    "privacy": "The ID is locked inside your report. Only an unreadable code made from it is used for matching: the server never sees the ID itself.",
+    "needId": "Please enter the person's university or work ID (at least 3 letters or numbers) so your report can be matched.",
+    "holdBtn": "Hold my report",
+    "waiting": "Waiting for a match",
+    "sentHeldTitle": "Your report is saved and held.",
+    "sentHeldBody": "Nobody on the committee can see it yet. If someone else reports the same person, both reports will be sent together and you'll see it in My cases. You can also send it yourself at any time.",
+    "heldTitle": "This report is held until someone else reports the same person.",
+    "heldBody": "The committee can't see it. You decide: keep waiting, or send it now.",
+    "release": "Send it now",
+    "releaseConfirm": "Send this report to the committee now? This can't be undone.",
+    "releaseYes": "Yes, send it",
+    "keepHolding": "Keep holding",
+    "releasing": "Sending…",
+    "bannerTitle": "You're not alone.",
+    "bannerBody": "Another report names the same person. Both reports are now with the committee. You won't be told who sent the other one, and they won't be told about you.",
+    "badge": "Not alone",
+    "personId": "About (ID)"
   }
 }

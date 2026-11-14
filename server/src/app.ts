@@ -5,6 +5,7 @@ import { healthRouter } from './routes/health.js';
 import { reporterRouter } from './routes/reporter.js';
 import { reporterDataRouter } from './routes/reporterData.js';
 import { journalRouter } from './routes/journal.js';
+import { matchRouter } from './routes/match.js';
 import { reportsRouter } from './routes/reports.js';
 import { publicRouter } from './routes/public.js';
 import { staffAuthRouter } from './routes/staffAuth.js';
@@ -21,6 +22,7 @@ export function createApp() {
   app.use('/api/reporter', reporterDataRouter);
   app.use('/api/reporter/journal', journalRouter);
   app.use('/api/reports', reportsRouter);
+  app.use('/api/match', matchRouter);
   app.use('/api/staff', staffAuthRouter);
   app.use('/api/staff/cases', staffCasesRouter);
   app.use('/api/admin', adminRouter);

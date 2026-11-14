@@ -15,7 +15,7 @@ import { postBytes } from '../lib/binary';
 
 interface Detail {
   id: string; category: string; mode: 'ANONYMOUS' | 'CONFIDENTIAL' | 'NAMED'; status: Status; aboutOther: boolean;
-  submittedAt: string; lastActionAt: string | null; nonce: string; ciphertext: string; fingerprint: string; sealedKey: string;
+  submittedAt: string; lastActionAt: string | null; releasedAt: string | null; linked: { id: string | null }[]; nonce: string; ciphertext: string; fingerprint: string; sealedKey: string;
   readers: { id: string; displayName: string; me: boolean }[];
   attachments: { id: string; kind: 'image' | 'pdf' | 'voice'; mimeType: string; size: number; createdAt: string }[];
   notes: { id: string; by: string; mine: boolean; nonce: string; ciphertext: string; createdAt: string }[];
@@ -33,6 +33,8 @@ function activityText(a: Detail['activity'][number]) {
   const d = a.details ?? {};
   switch (a.action) {
     case 'CASE_SUBMITTED': return 'Report received';
+    case 'CASE_HELD': return 'Report saved and held by the reporter ("Not alone")';
+    case 'CASE_RELEASED': return d.reason === 'match' ? 'Released: another report names the same person' : 'Released by the reporter';
     case 'ATTACHMENT_ADDED': return `Reporter added a ${d.kind === 'voice' ? 'voice note' : 'file'}`;
     case 'CASE_VIEWED': return `${a.by} opened the case`;
     case 'ATTACHMENT_OPENED': return `${a.by} opened a ${d.kind === 'voice' ? 'voice note' : 'file'}`;
@@ -203,6 +205,18 @@ export default function StaffCase() {
               </div>
             )}
 
+            {d.linked.length > 0 && (
+              <section aria-labelledby="link-h" className="flex flex-col gap-2 rounded-2xl border-2 border-primary bg-primary-soft p-4">
+                <h2 id="link-h" className="flex items-center gap-2 font-bold"><Icon name="users" size={18} />{d.linked.length === 1 ? '1 other report names the same person' : `${d.linked.length} other reports name the same person`}</h2>
+                <p className="text-[.95rem]">These reports were matched through "Not alone": each reporter entered the same ID, and the server compared unreadable tokens without ever seeing it. They may come from different people, or the same person reporting twice, so treat them as separate accounts.</p>
+                <div className="flex flex-wrap gap-2">
+                  {d.linked.map((l, i) => l.id
+                    ? <Link key={l.id} to={`/staff/cases/${l.id}`} className="btn btn-outline btn-sm font-mono no-underline">{l.id}</Link>
+                    : <span key={`x${i}`} className="badge badge-rev">Assigned to other members</span>)}
+                </div>
+              </section>
+            )}
+
             <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
               <div className="flex flex-col gap-5">
                 <section className="card flex flex-col gap-4 lg:p-6" aria-labelledby="rep-h">
@@ -216,6 +230,7 @@ export default function StaffCase() {
                     <Fact label="Where" value={report.where || 'Not given'} />
                     <Fact label="Reporter" value={report.identity.mode === 'ANONYMOUS' ? 'Anonymous' : `${report.identity.name}${report.identity.contact ? ` · ${report.identity.contact}` : ''}`} />
                     <Fact label="Happened to" value={report.aboutOther ? 'Someone else (witness)' : 'The reporter'} />
+                    {report.subjectId && <Fact label="About (ID)" value={report.subjectId} />}
                   </dl>
                   {report.description ? <p className="leading-relaxed whitespace-pre-wrap">{report.description}</p> : <p className="text-muted italic">No written description. See the voice note below.</p>}
                   {d.attachments.length > 0 && contentKey && (

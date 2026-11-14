@@ -195,6 +195,11 @@ model Case {
   submittedAt         DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
   lastHandlerActionAt DateTime?
+  // "Not alone": a held report is stored but hidden from the committee until another report
+  // names the same person, or until the reporter chooses to send it. A database trigger only
+  // allows held to go from true to false, never back.
+  held                Boolean    @default(false)
+  releasedAt          DateTime?
 
   category        Category          @relation(fields: [categoryId], references: [id])
   assignedHandler User?             @relation("AssignedHandler", fields: [assignedHandlerId], references: [id])
@@ -206,9 +211,21 @@ model Case {
   notes           CaseNote[]
   attachments     Attachment[]
   closures        ClosureApproval[]
+  matchTag        MatchTag?
 
   @@index([assignedHandlerId])
   @@index([status])
+}
+
+// "Not alone" match token: an OPRF output computed in the reporter's browser from the person's ID.
+// The server cannot turn it back into the ID without its secret key. Equal tokens = same person named.
+model MatchTag {
+  caseId    String   @id
+  token     String
+  createdAt DateTime @default(now())
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([token])
 }
 
 // How the reporter's browser proves it owns a case: a per-case key derived from the account's master key.

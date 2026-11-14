@@ -23,8 +23,10 @@ export interface ReportDraft {
   name: string;
   contact: string;
   excluded: string[];
+  subjectId: string; // "Not alone": the ID of the person the report is about (optional)
+  hold: boolean; // hold until another report names the same person
 }
-export const emptyDraft = (): ReportDraft => ({ v: 1, step: 1, aboutOther: false, method: 'type', description: '', where: '', voice: [], files: [], name: '', contact: '', excluded: [] });
+export const emptyDraft = (): ReportDraft => ({ v: 1, step: 1, aboutOther: false, method: 'type', description: '', where: '', voice: [], files: [], name: '', contact: '', excluded: [], subjectId: '', hold: false });
 
 export async function loadDraft(masterKey: Uint8Array): Promise<{ draft: ReportDraft; updatedAt: string } | null> {
   const d = await api<{ ciphertext: string; updatedAt: string } | null>('/reporter/draft');

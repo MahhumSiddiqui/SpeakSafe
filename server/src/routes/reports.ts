@@ -7,6 +7,7 @@ import { requireReporter } from '../lib/reporterSession.js';
 import { signToken, verifyToken } from '../lib/tokens.js';
 import { caseVerifier, requireCaseAuth } from '../lib/caseAuth.js';
 import { HttpError } from '../middleware/error.js';
+import { auditReleases, tagAndMatch } from '../lib/match.js';
 
 // Submitting reports. Content arrives already encrypted in the browser; the server only checks shapes,
 // picks the readers, stores ciphertext and records the event in the audit log.
@@ -58,6 +59,9 @@ const submitBody = z.object({
   reporterPublicKey: b64(64),
   reporterSealedKey: b64(256),
   caseAuthKey: b64(128),
+  // "Not alone": an OPRF token for the person named (never the ID itself), and whether to hold the report.
+  matchToken: z.string().length(44).regex(/^[A-Za-z0-9+/]+=$/).optional(),
+  hold: z.boolean().default(false),
 });
 
 /** Step 2: store the encrypted report, its readers' sealed keys and the reporter's exclusions. */
@@ -76,6 +80,7 @@ reportsRouter.post('/', async (req, res, next) => {
     const stored = Buffer.concat([Buffer.from(b.nonce, 'base64'), Buffer.from(b.ciphertext, 'base64')]);
     const fingerprint = createHash('sha256').update(stored).digest('hex');
     if (fingerprint !== b.fingerprint) throw new HttpError(400, 'The report changed on the way. Please try sending again.');
+    if (b.hold && !b.matchToken) throw new HttpError(400, 'To hold a report, please enter the ID of the person it is about.');
 
     let id = caseCode();
     while (await prisma.case.findUnique({ where: { id }, select: { id: true } })) id = caseCode();
@@ -91,6 +96,8 @@ reportsRouter.post('/', async (req, res, next) => {
           nonce: b.nonce,
           fingerprint,
           assignedHandlerId: readers[0],
+          held: b.hold,
+          releasedAt: b.hold ? null : new Date(),
         },
       });
       await tx.caseAccess.create({
@@ -98,10 +105,13 @@ reportsRouter.post('/', async (req, res, next) => {
       });
       await tx.reportKey.createMany({ data: readers.map((handlerId) => ({ caseId: id, handlerId, sealedKey: b.sealedKeys[handlerId] })) });
       if (excluded.length) await tx.exclusion.createMany({ data: excluded.map((handlerId) => ({ caseId: id, handlerId })) });
-      return c;
+      const m = b.matchToken ? await tagAndMatch(tx, id, b.matchToken) : { released: [] as string[], linked: 0 };
+      return { c, ...m };
     });
-    await audit({ actorType: 'REPORTER', action: 'CASE_SUBMITTED', targetType: 'CASE', targetId: id, details: { mode: b.mode, readers: readers.length, excluded: excluded.length } });
-    res.status(201).json({ caseId: id, fingerprint, submittedAt: created.submittedAt });
+    await audit({ actorType: 'REPORTER', action: b.hold ? 'CASE_HELD' : 'CASE_SUBMITTED', targetType: 'CASE', targetId: id, details: { mode: b.mode, readers: readers.length, excluded: excluded.length } });
+    await auditReleases(created.released, 'match');
+    const stillHeld = b.hold && !created.released.includes(id);
+    res.status(201).json({ caseId: id, fingerprint, submittedAt: created.c.submittedAt, held: stillHeld, notAlone: created.linked > 0 });
   } catch (e) {
     next(e);
   }

@@ -11,11 +11,13 @@ export interface CaseMeta {
   firstViewedAt: string | null;
   history: { at: string; to: Status }[];
   messages: { id: string; from: 'me' | 'committee'; nonce: string; ciphertext: string; createdAt: string }[];
+  held: boolean; releasedAt: string | null; notAlone: number;
 }
 export interface ReportContent {
   category: { name: string }; aboutOther: boolean; description: string; when: string; where: string;
   identity: { mode: string; name?: string; contact?: string };
   voiceNotes: { label: string; seconds?: number }[]; files: { label: string; kind: string }[];
+  subjectId?: string;
 }
 
 export async function fetchCase(masterKey: Uint8Array, v: VaultCase) {

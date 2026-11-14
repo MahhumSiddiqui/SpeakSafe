@@ -5,6 +5,7 @@ import { requireReporter } from '../lib/reporterSession.js';
 import { requireCaseAuth } from '../lib/caseAuth.js';
 import { audit } from '../lib/audit.js';
 import { HttpError } from '../middleware/error.js';
+import { auditReleases, linkedCases } from '../lib/match.js';
 
 // The reporter's own encrypted data: case list (vault), the unfinished draft and its files,
 // and read access to their own cases. Everything here is ciphertext the server cannot open.
@@ -151,7 +152,24 @@ reporterDataRouter.get('/cases/:id', async (req, res, next) => {
         to: h.action === 'STATUS_CHANGED' ? (h.details as { to: string }).to : h.action === 'CASE_CLOSED' ? 'CLOSED' : h.action === 'CLOSURE_REQUESTED' ? 'PENDING_CLOSURE' : null,
       })).filter((h) => h.to),
       messages: c.messages.map((m) => ({ id: m.id, from: m.senderType === 'REPORTER' ? 'me' : 'committee', nonce: m.nonce, ciphertext: m.ciphertext, createdAt: m.createdAt })),
+      held: c.held,
+      releasedAt: c.releasedAt,
+      // "Not alone": how many other reports name the same person. Never which ones, or who wrote them.
+      notAlone: (await linkedCases(prisma, id)).length,
     });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// "Send it now": the reporter releases their held report to the committee without waiting for a match.
+reporterDataRouter.post('/cases/:id/release', async (req, res, next) => {
+  try {
+    const id = String(req.params.id);
+    await requireCaseAuth(req, id);
+    const r = await prisma.case.updateMany({ where: { id, held: true }, data: { held: false, releasedAt: new Date() } });
+    if (r.count) await auditReleases([id], 'reporter');
+    res.json({ held: false });
   } catch (e) {
     next(e);
   }

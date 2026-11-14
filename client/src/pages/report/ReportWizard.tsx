@@ -14,6 +14,7 @@ import { errorText } from '../../lib/errors';
 import { cleanFile, formatDuration, formatSize, kindOf, MAX_FILE_BYTES } from '../../lib/media';
 import { deleteDraftFile, discardDraft, emptyDraft, loadDraft, readDraftFile, uploadDraftFile, useAutosave, type FileRef, type Mode, type ReportDraft, type When } from './draft';
 import { sendReport } from './send';
+import { normaliseId } from '../../lib/notAlone';
 
 const STEPS = 6;
 const MAX_FILES = 10;
@@ -152,6 +153,11 @@ export default function ReportWizard() {
   const send = async () => {
     if (!mk || !d || !category) return;
     setError('');
+    const idLen = normaliseId(d.subjectId).length;
+    if ((d.hold && idLen < 3) || (d.subjectId.trim() && idLen < 3)) {
+      setError(t('notAlone.needId'));
+      return;
+    }
     try {
       await saveNow();
       const res = await sendReport(mk, d, category.name, (s) => setSending(t(`report.sending.${s}`)));
@@ -389,6 +395,17 @@ export default function ReportWizard() {
                 <Row label={t('report.steps.4')} value={t(`mode.${d.mode}.title`)} onEdit={() => goTo(4)} />
                 <Row label={t('report.steps.5')} value={d.excluded.length ? t('review.excluded', { count: d.excluded.length }) : t('review.noneExcluded')} onEdit={() => goTo(5)} />
               </div>
+              <section className="card flex flex-col gap-4" aria-labelledby="na-h">
+                <h2 id="na-h" data-read className="flex items-center gap-2 text-lg font-bold"><Icon name="users" size={20} />{t('notAlone.title')}</h2>
+                <p data-read className="-mt-2 text-muted">{t('notAlone.intro')}</p>
+                <div className="flex flex-col gap-3" role="radiogroup" aria-label={t('notAlone.title')}>
+                  <Option on={!d.hold} onClick={() => update({ hold: false })} icon="send" title={t('notAlone.now')} body={t('notAlone.nowBody')} />
+                  <Option on={d.hold} onClick={() => update({ hold: true })} icon="clock" title={t('notAlone.hold')} body={t('notAlone.holdBody')} />
+                </div>
+                <TextField label={d.hold ? t('notAlone.idLabel') : t('notAlone.idLabelOptional')} hint={t('notAlone.idHint')} value={d.subjectId}
+                  onChange={(e) => update({ subjectId: e.target.value })} maxLength={40} autoComplete="off" spellCheck={false} dir="ltr" />
+                <p className="flex items-start gap-2 text-sm text-muted"><Icon name="lock" size={16} /><span data-read>{t('notAlone.privacy')}</span></p>
+              </section>
               <div className="card-soft flex items-start gap-3 text-[.95rem]">
                 <span className="icon-tile sm !bg-surface"><Icon name="lock" size={18} /></span>
                 <span data-read>{t('review.lockNote')}</span>
@@ -407,7 +424,7 @@ export default function ReportWizard() {
             {d.step < STEPS ? (
               <button type="button" className="btn btn-primary" onClick={next}>{t('common.continue')}<span className="rtl:rotate-180"><Icon name="arrow" size={18} /></span></button>
             ) : (
-              <button type="button" className="btn btn-primary" onClick={send} disabled={!!sending}>{sending ? <Busy label={sending} /> : <><Icon name="send" size={18} />{t('review.send')}</>}</button>
+              <button type="button" className="btn btn-primary" onClick={send} disabled={!!sending}>{sending ? <Busy label={sending} /> : d.hold ? <><Icon name="clock" size={18} />{t('notAlone.holdBtn')}</> : <><Icon name="send" size={18} />{t('review.send')}</>}</button>
             )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 lg:hidden"><SaveBadge state={saveState} /></div>

@@ -3,11 +3,12 @@ import { postBytes } from '../../lib/binary';
 import { caseKeys, encryptBytes, encryptReport, newCaseRef } from '../../lib/reportCrypto';
 import { addToVault } from '../../lib/vault';
 import { discardDraft, readDraftFile, type ReportDraft } from './draft';
+import { matchToken, normaliseId } from '../../lib/notAlone';
 
-export interface SentResult { caseId: string; fingerprint: string; failedFiles: number }
+export interface SentResult { caseId: string; fingerprint: string; failedFiles: number; held: boolean; notAlone: boolean }
 
 /** Lock (encrypt) everything in the browser, then send. Steps are reported for the progress message. */
-export async function sendReport(masterKey: Uint8Array, d: ReportDraft, categoryName: string, onStep: (s: 'readers' | 'locking' | 'sending' | 'files') => void): Promise<SentResult> {
+export async function sendReport(masterKey: Uint8Array, d: ReportDraft, categoryName: string, onStep: (s: 'readers' | 'locking' | 'matching' | 'sending' | 'files') => void): Promise<SentResult> {
   onStep('readers');
   const prep = await api<{ readers: { id: string; displayName: string; publicKey: string }[]; token: string }>('/reports/prepare', { body: { excluded: d.excluded } });
 
@@ -24,12 +25,20 @@ export async function sendReport(masterKey: Uint8Array, d: ReportDraft, category
     identity: d.mode === 'ANONYMOUS' ? { mode: d.mode } : { mode: d.mode, name: d.name.trim(), contact: d.contact.trim() },
     voiceNotes: d.voice.map((v) => ({ label: v.label, seconds: v.seconds })),
     files: d.files.map((f) => ({ label: f.label, kind: f.kind })),
+    ...(d.subjectId.trim() ? { subjectId: normaliseId(d.subjectId) } : {}),
   };
   const enc = await encryptReport(report, prep.readers, ck.publicKey);
 
+  // "Not alone": only an unreadable token for the person's ID leaves the browser, never the ID.
+  let token: string | undefined;
+  if (d.subjectId.trim()) {
+    onStep('matching');
+    token = await matchToken(d.subjectId);
+  }
+
   onStep('sending');
   const { s } = { s: await import('../../lib/keys').then((m) => m.sodium()) };
-  const res = await api<{ caseId: string; fingerprint: string }>('/reports', {
+  const res = await api<{ caseId: string; fingerprint: string; held: boolean; notAlone: boolean }>('/reports', {
     body: {
       token: prep.token,
       categoryId: d.categoryId,
@@ -42,6 +51,7 @@ export async function sendReport(masterKey: Uint8Array, d: ReportDraft, category
       reporterPublicKey: s.to_base64(ck.publicKey, s.base64_variants.ORIGINAL),
       reporterSealedKey: enc.reporterSealedKey,
       caseAuthKey: ck.authKey,
+      ...(token ? { matchToken: token, hold: d.hold } : {}),
     },
   });
   // Remember the case in the private vault straight away, so it is never lost.
@@ -60,5 +70,5 @@ export async function sendReport(masterKey: Uint8Array, d: ReportDraft, category
   }
   if (!failed) await discardDraft().catch(() => {});
   enc.contentKey.fill(0);
-  return { caseId: res.caseId, fingerprint: res.fingerprint, failedFiles: failed };
+  return { caseId: res.caseId, fingerprint: res.fingerprint, failedFiles: failed, held: res.held, notAlone: res.notAlone };
 }

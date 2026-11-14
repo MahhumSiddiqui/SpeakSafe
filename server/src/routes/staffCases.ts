@@ -6,6 +6,7 @@ import { prisma } from '../db.js';
 import { audit } from '../lib/audit.js';
 import { requireStaff } from '../lib/staffSession.js';
 import { HttpError } from '../middleware/error.js';
+import { linkedCases } from '../lib/match.js';
 
 // Committee case work. A member sees a case only if a key was sealed to them and they have not recused.
 // The server never decrypts anything: it hands each member their own sealed key and the ciphertext.
@@ -30,6 +31,8 @@ async function myCase(caseId: string, userId: string) {
   const mine = readers.find((k) => k.handlerId === userId);
   if (!mine) throw new HttpError(404, 'This case is not assigned to you.');
   const c = await prisma.case.findUniqueOrThrow({ where: { id: caseId }, include: { category: true } });
+  // A held report ("Not alone") does not exist for the committee until it is released.
+  if (c.held) throw new HttpError(404, 'This case is not assigned to you.');
   return { c, mine, readers };
 }
 
@@ -40,8 +43,9 @@ staffCasesRouter.get('/', async (req, res, next) => {
     const me = req.staff!.userId;
     const recused = (await prisma.recusal.findMany({ where: { handlerId: me }, select: { caseId: true } })).map((r) => r.caseId);
     const cases = await prisma.case.findMany({
-      where: { keys: { some: { handlerId: me } }, id: { notIn: recused } },
+      where: { keys: { some: { handlerId: me } }, id: { notIn: recused }, held: false },
       include: {
+        matchTag: { select: { token: true } },
         category: { select: { name: true } },
         closures: { where: { status: 'PENDING' }, select: { requestedById: true } },
         messages: { where: { senderType: 'REPORTER' }, orderBy: { createdAt: 'desc' }, take: 1, select: { createdAt: true } },
@@ -51,15 +55,19 @@ staffCasesRouter.get('/', async (req, res, next) => {
     // "New message": the reporter wrote after this member last opened the case.
     const views = await prisma.auditLog.groupBy({ by: ['targetId'], where: { action: 'CASE_VIEWED', actorId: me, targetId: { in: cases.map((c) => c.id) } }, _max: { at: true } });
     const lastView = new Map(views.map((v) => [v.targetId, v._max.at]));
+    const tokens = cases.map((c) => c.matchTag?.token).filter(Boolean) as string[];
+    const tagCounts = tokens.length ? await prisma.matchTag.groupBy({ by: ['token'], where: { token: { in: tokens } }, _count: { _all: true } }) : [];
+    const linkedByToken = new Map(tagCounts.map((t) => [t.token, t._count._all - 1]));
     const now = Date.now();
     res.json(cases.map((c) => {
-      const last = (c.lastHandlerActionAt ?? c.submittedAt).getTime();
+      const last = (c.lastHandlerActionAt ?? c.releasedAt ?? c.submittedAt).getTime();
       return {
         id: c.id, category: c.category.name, mode: c.mode, status: c.status, aboutOther: c.aboutOther,
         submittedAt: c.submittedAt, lastActionAt: c.lastHandlerActionAt,
         waiting: c.status !== 'CLOSED' && now - last > WAITING_DAYS * 86_400_000,
         needsMyApproval: c.closures.some((x) => x.requestedById !== me),
         newMessage: !!c.messages[0] && (!lastView.get(c.id) || c.messages[0].createdAt > lastView.get(c.id)!),
+        linked: c.matchTag ? linkedByToken.get(c.matchTag.token) ?? 0 : 0,
       };
     }));
   } catch (e) {
@@ -82,10 +90,14 @@ staffCasesRouter.get('/:id', async (req, res, next) => {
       prisma.message.findMany({ where: { caseId: id }, include: { handler: { select: { displayName: true } } }, orderBy: { createdAt: 'asc' } }),
       prisma.replyTemplate.findMany({ orderBy: { id: 'asc' } }),
     ]);
+    // "Not alone": other reports naming the same person, and which of them this member can open.
+    const linkedIds = await linkedCases(prisma, id);
+    const myLinked = new Set((await prisma.reportKey.findMany({ where: { caseId: { in: linkedIds }, handlerId: me, case: { recusals: { none: { handlerId: me } } } }, select: { caseId: true } })).map((k) => k.caseId));
     const names = new Map((await prisma.user.findMany({ where: { id: { in: events.map((e) => e.actorId).filter(Boolean) as string[] } }, select: { id: true, displayName: true } })).map((u) => [u.id, u.displayName]));
     res.json({
       id: c.id, category: c.category.name, mode: c.mode, status: c.status, aboutOther: c.aboutOther,
-      submittedAt: c.submittedAt, lastActionAt: c.lastHandlerActionAt,
+      submittedAt: c.submittedAt, lastActionAt: c.lastHandlerActionAt, releasedAt: c.releasedAt,
+      linked: linkedIds.map((lid) => ({ id: myLinked.has(lid) ? lid : null })),
       nonce: c.nonce, ciphertext: c.ciphertext, fingerprint: c.fingerprint,
       sealedKey: mine.sealedKey,
       readers: readers.map((r) => ({ id: r.handlerId, displayName: r.handler.displayName, me: r.handlerId === me })),

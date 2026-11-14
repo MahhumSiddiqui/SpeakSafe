@@ -54,8 +54,11 @@ export default function MyCases() {
                 <Link to={`/cases/${c.id}`} className="card flex flex-col gap-3 lg:p-5">
                   <span className="flex items-center justify-between gap-3">
                     <span className="font-mono text-lg font-bold" dir="ltr">{c.id}</span>
-                    <span className={`badge ${STATUS_BADGE[c.status]}`}><span className="h-2 w-2 rounded-full bg-current" />{t(`status.${c.status}`)}</span>
+                    {c.held
+                      ? <span className="badge badge-rev"><Icon name="clock" size={13} />{t('notAlone.waiting')}</span>
+                      : <span className={`badge ${STATUS_BADGE[c.status]}`}><span className="h-2 w-2 rounded-full bg-current" />{t(`status.${c.status}`)}</span>}
                   </span>
+                  {c.notAlone > 0 && <span className="badge badge-rec self-start"><Icon name="users" size={13} />{t('notAlone.badge')}</span>}
                   {!!unread?.perCase[c.id] && <span className="badge badge-inq self-start"><Icon name="mail" size={13} />{t('messages.newCount', { count: unread.perCase[c.id] })}</span>}
                   <span className="text-[.95rem]">{t(`categories.${c.category}`, { defaultValue: c.category })} · {t(`mode.${c.mode}.title`)}</span>
                   <span className="text-sm text-muted">{t('cases.sentOn', { date: fmt(c.submittedAt) })}</span>

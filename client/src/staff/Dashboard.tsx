@@ -7,7 +7,7 @@ import { Busy, FormError } from '../components/Field';
 import { api, ApiError } from '../lib/api';
 import { STATUS_BADGE, type Status } from '../pages/cases/caseData';
 
-interface Row { id: string; category: string; mode: string; status: Status; aboutOther: boolean; submittedAt: string; lastActionAt: string | null; waiting: boolean; needsMyApproval: boolean; newMessage: boolean }
+interface Row { id: string; category: string; mode: string; status: Status; aboutOther: boolean; submittedAt: string; lastActionAt: string | null; waiting: boolean; needsMyApproval: boolean; newMessage: boolean; linked: number }
 const STATUS_LABEL: Record<Status, string> = { RECEIVED: 'Received', UNDER_REVIEW: 'Under review', INQUIRY: 'Inquiry', PENDING_CLOSURE: 'Closure pending', CLOSED: 'Closed' };
 const MODE: Record<string, string> = { ANONYMOUS: 'Anonymous', CONFIDENTIAL: 'Confidential', NAMED: 'Named' };
 const ago = (d: string) => {
@@ -113,6 +113,7 @@ export default function Dashboard() {
                         {r.waiting && <span className="badge badge-inq"><Icon name="clock" size={13} />Waiting too long</span>}
                         {r.needsMyApproval && <span className="badge badge-pend"><Icon name="users" size={13} />Needs your approval</span>}
                         {r.newMessage && <span className="badge badge-rec"><Icon name="mail" size={13} />New message</span>}
+                        {r.linked > 0 && <span className="badge badge-rev"><Icon name="users" size={13} />Linked ({r.linked})</span>}
                       </span>
                     </td>
                   </tr>

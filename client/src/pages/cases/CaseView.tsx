@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Layout } from '../../components/Layout';
 import { Icon } from '../../components/Icon';
+import { NotAloneBanner } from '../../components/NotAlone';
 import { ReadAloud } from '../../components/ReadAloud';
 import { Busy, FormError } from '../../components/Field';
 import { useReporter } from '../../auth/ReporterAuth';
@@ -30,6 +31,8 @@ export default function CaseView() {
   const [error, setError] = useState('');
   const [thread, setThread] = useState<ThreadItem[]>([]);
   const [adding, setAdding] = useState(false);
+  const [confirmRelease, setConfirmRelease] = useState(false);
+  const [releasing, setReleasing] = useState(false);
 
   const load = useCallback(async () => {
     if (!session || !id) return;
@@ -68,6 +71,22 @@ export default function CaseView() {
     } catch (e) {
       setError(errorText(e, t));
       throw e;
+    }
+  };
+
+  // "Send it now": the reporter stops waiting for a match and releases the report to the committee.
+  const release = async () => {
+    if (!keys || !meta) return;
+    setReleasing(true);
+    setError('');
+    try {
+      await api(`/reporter/cases/${meta.id}/release`, { method: 'POST', headers: { 'X-Case-Auth': keys.authKey } });
+      setConfirmRelease(false);
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setReleasing(false);
     }
   };
 
@@ -115,9 +134,28 @@ export default function CaseView() {
                 <h1 className="font-mono text-2xl font-bold lg:text-3xl" dir="ltr">{meta.id}</h1>
                 <p className="text-sm text-muted">{t(`categories.${meta.category}`, { defaultValue: meta.category })} · {t(`mode.${meta.mode}.title`)} · {t('cases.sentOn', { date: fmt(meta.submittedAt) })}</p>
               </div>
-              <span className={`badge ${STATUS_BADGE[meta.status]} !text-sm`}><span className="h-2 w-2 rounded-full bg-current" />{t(`status.${meta.status}`)}</span>
+              {meta.held
+                ? <span className="badge badge-rev !text-sm"><Icon name="clock" size={13} />{t('notAlone.waiting')}</span>
+                : <span className={`badge ${STATUS_BADGE[meta.status]} !text-sm`}><span className="h-2 w-2 rounded-full bg-current" />{t(`status.${meta.status}`)}</span>}
             </div>
-            <p data-read>{t(`caseView.statusLine.${meta.status}`)}</p>
+            {meta.held ? (
+              <div className="card flex flex-col gap-3 border-2 !border-accent">
+                <b data-read>{t('notAlone.heldTitle')}</b>
+                <p data-read>{t('notAlone.heldBody')}</p>
+                {confirmRelease ? (
+                  <div className="flex flex-wrap items-center gap-2 rounded-xl bg-accent-soft p-3">
+                    <span data-read className="flex-1">{t('notAlone.releaseConfirm')}</span>
+                    <button type="button" className="btn btn-outline btn-sm" onClick={() => setConfirmRelease(false)}>{t('notAlone.keepHolding')}</button>
+                    <button type="button" className="btn btn-primary btn-sm" onClick={release} disabled={releasing}>{releasing ? <Busy label={t('notAlone.releasing')} /> : t('notAlone.releaseYes')}</button>
+                  </div>
+                ) : (
+                  <button type="button" className="btn btn-primary self-start" onClick={() => setConfirmRelease(true)}><Icon name="send" size={18} />{t('notAlone.release')}</button>
+                )}
+              </div>
+            ) : (
+              <p data-read>{t(`caseView.statusLine.${meta.status}`)}</p>
+            )}
+            {meta.notAlone > 0 && <NotAloneBanner />}
             <ReadAloud />
             <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
               <section className="card flex flex-col gap-4 lg:p-6" aria-labelledby="yr-h">
@@ -130,6 +168,7 @@ export default function CaseView() {
                   <div className="card-soft !p-3"><dt className="text-xs text-muted">{t('report.when')}</dt><dd className="font-semibold">{t(`report.whenOpt.${report.when}`)}</dd></div>
                   {report.where && <div className="card-soft !p-3"><dt className="text-xs text-muted">{t('caseView.where')}</dt><dd className="font-semibold">{report.where}</dd></div>}
                   <div className="card-soft !p-3"><dt className="text-xs text-muted">{t('caseView.about')}</dt><dd className="font-semibold">{report.aboutOther ? t('report.whoOther') : t('report.whoMe')}</dd></div>
+                  {report.subjectId && <div className="card-soft !p-3"><dt className="text-xs text-muted">{t('notAlone.personId')}</dt><dd className="font-mono font-semibold" dir="ltr">{report.subjectId}</dd></div>}
                 </dl>
                 {meta.attachments.length > 0 && keys && (
                   <div className="flex flex-col gap-3">

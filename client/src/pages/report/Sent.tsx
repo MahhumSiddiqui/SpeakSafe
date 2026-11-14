@@ -5,6 +5,7 @@ import { Layout } from '../../components/Layout';
 import { Icon } from '../../components/Icon';
 import { ReadAloud } from '../../components/ReadAloud';
 import type { SentResult } from './send';
+import { NotAloneBanner } from '../../components/NotAlone';
 
 export default function Sent() {
   const { t } = useTranslation();
@@ -24,16 +25,19 @@ export default function Sent() {
           <circle cx="106" cy="16" r="3" fill="var(--primary)" />
           <circle cx="104" cy="92" r="5" fill="var(--ill-2)" />
         </svg>
-        <h1 data-read className="text-[1.75rem] font-extrabold lg:text-[2.2rem]">{t('sent.title')}</h1>
-        <p data-read className="text-muted">{t('sent.body')}</p>
+        <h1 data-read className="text-[1.75rem] font-extrabold lg:text-[2.2rem]">{res.held ? t('notAlone.sentHeldTitle') : t('sent.title')}</h1>
+        <p data-read className="text-muted">{res.held ? t('notAlone.sentHeldBody') : t('sent.body')}</p>
         <ReadAloud />
+        {res.notAlone && <NotAloneBanner />}
         {res.failedFiles > 0 && <div role="alert" className="w-full rounded-2xl border-2 border-accent bg-accent-soft p-3.5 text-start">{t('sent.failed', { count: res.failedFiles })}</div>}
         <div className="card flex w-full flex-col gap-2 text-start">
           <span className="text-sm text-muted">{t('sent.caseId')}</span>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="font-mono text-2xl font-bold tracking-wider" dir="ltr">{res.caseId}</span>
             <span className="flex items-center gap-2">
-              <span className="badge badge-rec"><span className="h-2 w-2 rounded-full bg-current" />{t('status.RECEIVED')}</span>
+              {res.held
+                ? <span className="badge badge-rev"><Icon name="clock" size={13} />{t('notAlone.waiting')}</span>
+                : <span className="badge badge-rec"><span className="h-2 w-2 rounded-full bg-current" />{t('status.RECEIVED')}</span>}
               <button type="button" className="btn btn-quiet btn-sm" onClick={() => navigator.clipboard?.writeText(res.caseId).then(() => setCopied(true))}>
                 <Icon name={copied ? 'check' : 'copy'} size={16} />{copied ? t('signup.copied') : t('sent.copy')}
               </button>
@@ -42,11 +46,11 @@ export default function Sent() {
           <span className="text-xs text-muted" dir="ltr">{t('sent.fingerprint')}: <span className="font-mono">{fp.slice(0, 4).join(' ')} … {fp.slice(-2).join(' ')}</span></span>
           <span className="text-xs text-muted">{t('sent.fingerprintHint')}</span>
         </div>
-        <div className="card-soft flex w-full flex-col gap-3 text-start">
+        {!res.held && <div className="card-soft flex w-full flex-col gap-3 text-start">
           <h2 className="font-bold">{t('sent.next')}</h2>
           <p className="flex items-start gap-3"><span className="icon-tile sm !bg-surface"><Icon name="users" size={18} /></span>{t('sent.next1')}</p>
           <p className="flex items-start gap-3"><span className="icon-tile sm !bg-surface"><Icon name="folder" size={18} /></span>{t('sent.next2')}</p>
-        </div>
+        </div>}
         <div className="grid w-full gap-3 sm:grid-cols-2">
           <Link to={`/cases/${res.caseId}`} className="btn btn-primary">{t('sent.view')}</Link>
           <Link to="/space" className="btn btn-quiet">{t('sent.home')}</Link>
