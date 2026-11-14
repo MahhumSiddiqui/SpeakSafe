@@ -530,5 +530,186 @@
     "yesDelete": "Delete",
     "encrypted": "Encrypted",
     "openPdf": "Open"
+  },
+  "options": {
+    "title": "Know your options",
+    "sub": "Short answers to the questions most people have before reporting. Take your time; you don't have to decide anything today.",
+    "counts": {
+      "title": "Does what happened count?",
+      "body": "If something made you feel unsafe, treated unfairly or worried, it is worth writing down. You don't need to be sure it \"counts\" or have proof. The committee can help work that out.",
+      "ex": {
+        "Harassment": "Unwanted comments, messages, touching, following, or pressure, in person or online.",
+        "Discrimination": "Being treated worse because of gender, religion, disability, background or similar.",
+        "Academic misconduct": "Cheating, plagiarism, grades in exchange for favours, unfair marking.",
+        "Fraud or financial misconduct": "Misuse of money or funds, bribes, fake documents.",
+        "Safety concern": "Something that could hurt people: unsafe buildings, threats, violence.",
+        "Other": "Anything else that worries you. Describe it in your own words."
+      },
+      "unsure": "Not sure? Write it in your journal first. You can decide later."
+    },
+    "next": {
+      "title": "What happens after you report?",
+      "body": "You can follow every step from My cases. You will see when your report is first opened, and each change of status.",
+      "received": {
+        "t": "Received",
+        "b": "Your report is stored, locked, with its tamper-proof seal. Two committee members are chosen to read it."
+      },
+      "read": {
+        "t": "Read by two members",
+        "b": "Only those two members can unlock it. You see the date it was first opened."
+      },
+      "review": {
+        "t": "Under review",
+        "b": "They look at what you shared. They may send you questions in My cases; you choose what to answer."
+      },
+      "inquiry": {
+        "t": "Inquiry",
+        "b": "If needed, the committee looks into it further under your institution's rules."
+      },
+      "closure": {
+        "t": "Closed",
+        "b": "Closing needs two members to agree. Your report and all messages are kept; nothing can be deleted."
+      },
+      "note": "SpeakSafe does not send emails or texts. New messages show as a badge when you log in."
+    },
+    "modes": {
+      "title": "Anonymous, confidential or named?",
+      "body": "You choose this for each report. The content is encrypted in every case; this choice is only about whether the committee knows who you are.",
+      "col": {
+        "mode": "Option",
+        "name": "Who knows your name",
+        "good": "Good when"
+      },
+      "ANONYMOUS": {
+        "name": "Nobody. The committee never sees your username either.",
+        "good": "You fear retaliation, or just want the problem known."
+      },
+      "CONFIDENTIAL": {
+        "name": "Only the two members reading your report.",
+        "good": "You want help that may need your identity, without others knowing."
+      },
+      "NAMED": {
+        "name": "Your name is part of the report.",
+        "good": "You want formal action and are comfortable being known."
+      },
+      "change": "You can still message the committee in all three options. A report cannot be changed after sending, but you can add information later."
+    },
+    "who": {
+      "title": "Who can read your report?",
+      "body": "Your report is locked on your device before it is sent. Only people who hold a key can unlock it.",
+      "can": {
+        "you": "You, from your private space.",
+        "members": "The two committee members chosen for your case (another member only if one steps aside)."
+      },
+      "cannot": {
+        "excluded": "Any member you chose to keep away.",
+        "admin": "The SpeakSafe admin.",
+        "server": "The server or database: they only store locked data.",
+        "others": "Anyone else at your institution."
+      },
+      "log": "Every time a member opens your case, it is recorded in a log that cannot be changed, and you see the date."
+    },
+    "limits": {
+      "title": "What SpeakSafe cannot promise",
+      "body": "We tell you this honestly so you can decide what to share.",
+      "style": "Your way of writing, or details only you would know, could hint at who you are. Keep details general if you want to stay anonymous.",
+      "small": "In a very small group (for example one class of 10), people may guess who reported, even without a name.",
+      "device": "Someone with access to your phone or laptop could see that you use SpeakSafe. Use Quick Exit, the discreet tab name, and log out when you finish.",
+      "words": "If you forget your password and lose your 6 recovery words, nobody can open your private space, not even us."
+    },
+    "choices": {
+      "title": "Your choices",
+      "body": "There is no wrong choice. You can also do more than one.",
+      "wait": {
+        "t": "Wait",
+        "b": "You don't have to act now. Your private space stays here."
+      },
+      "journal": {
+        "t": "Keep a private record",
+        "b": "Write down dates and details and keep evidence in your locker, just for you."
+      },
+      "talk": {
+        "t": "Talk to someone",
+        "b": "A helpline or a person you trust can listen and advise. See Support."
+      },
+      "report": {
+        "t": "Report on SpeakSafe",
+        "b": "Anonymously, confidentially or by name, and choose who must not see it."
+      },
+      "outside": {
+        "t": "Report outside your institution",
+        "b": "For example to the Federal Ombudsperson for workplace harassment, or to the police. See Support."
+      }
+    },
+    "cta": {
+      "report": "Report a concern",
+      "journal": "Open my journal",
+      "support": "See support and helplines"
+    }
+  },
+  "support": {
+    "title": "Support and helplines",
+    "sub": "People and services who can listen, advise or act. Choose a type of concern to see who can help.",
+    "filter": "What is this about?",
+    "f": {
+      "all": "Everything",
+      "danger": "In danger now",
+      "harassment": "Harassment",
+      "online": "Online",
+      "workplace": "At work",
+      "campus": "At university",
+      "discrimination": "Discrimination",
+      "children": "Under 18"
+    },
+    "count_one": "{{count}} service",
+    "count_other": "{{count}} services",
+    "website": "Website",
+    "reportHere": "Report on SpeakSafe",
+    "privacy": "Calls and emails go from your own phone or email, outside SpeakSafe, and may appear in your call log or browser history. Websites open in a new tab.",
+    "checked": "Numbers last checked: {{date}}. Services sometimes change their numbers.",
+    "s": {
+      "emergency": {
+        "name": "Emergency: Police 15 · Rescue 1122",
+        "by": "Government of Pakistan",
+        "what": "If you or someone else is in danger right now, call immediately."
+      },
+      "campus": {
+        "name": "Your university's harassment committee",
+        "by": "Required at every university by the HEC policy on protection against sexual harassment (2020)",
+        "what": "Every university must have an inquiry committee. Your student affairs office can tell you who is on it. You can also report to them through SpeakSafe."
+      },
+      "fospah": {
+        "name": "Federal Ombudsperson for Protection Against Harassment (FOSPAH)",
+        "by": "Government of Pakistan",
+        "what": "Takes complaints about harassment at the workplace, including universities, and can order action."
+      },
+      "pcsw": {
+        "name": "Women's helpline 1043 (Punjab)",
+        "by": "Punjab Commission on the Status of Women",
+        "what": "Free advice on workplace harassment, discrimination and violence, with legal advisors and a counsellor.",
+        "when": "24 hours, 7 days"
+      },
+      "sindh": {
+        "name": "Women's helpline 1094 (Sindh)",
+        "by": "Women Development Department, Government of Sindh",
+        "what": "Information, guidance and support for women facing violence or harassment."
+      },
+      "drf": {
+        "name": "Cyber Harassment Helpline",
+        "by": "Digital Rights Foundation",
+        "what": "Free, confidential help with online harassment, blackmail, fake accounts and leaked pictures.",
+        "when": "Every day, 9am to 5pm"
+      },
+      "humanRights": {
+        "name": "Human rights helpline 1099",
+        "by": "Ministry of Human Rights",
+        "what": "Free legal advice on human rights violations, including discrimination and violence."
+      },
+      "madadgaar": {
+        "name": "Madadgaar National Helpline 1098",
+        "by": "Lawyers for Human Rights and Legal Aid (LHRLA)",
+        "what": "Help for children and women facing abuse or violence."
+      }
+    }
   }
 }

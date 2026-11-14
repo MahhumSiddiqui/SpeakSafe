@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router';
-import { useTranslation } from 'react-i18next';
 import Home from './pages/Home';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
@@ -7,7 +6,8 @@ import Recover from './pages/Recover';
 import MySpace from './pages/MySpace';
 import TakeBreak from './pages/TakeBreak';
 import Journal from './pages/Journal';
-import Placeholder from './pages/Placeholder';
+import Options from './pages/Options';
+import Support from './pages/Support';
 import ReportWizard from './pages/report/ReportWizard';
 import Sent from './pages/report/Sent';
 import MyCases from './pages/cases/MyCases';
@@ -25,7 +25,6 @@ import Audit from './staff/admin/Audit';
 import Stats from './staff/admin/Stats';
 
 export default function App() {
-  const { t } = useTranslation();
   return (
     <Routes>
       <Route path="/" element={<GuestOnly><Home /></GuestOnly>} />
@@ -39,8 +38,8 @@ export default function App() {
       <Route path="/cases" element={<RequireReporter><MyCases /></RequireReporter>} />
       <Route path="/cases/:id" element={<RequireReporter><CaseView /></RequireReporter>} />
       <Route path="/journal" element={<RequireReporter><Journal /></RequireReporter>} />
-      <Route path="/options" element={<Placeholder title={t('home.options')} />} />
-      <Route path="/support" element={<Placeholder title={t('home.support')} />} />
+      <Route path="/options" element={<Options />} />
+      <Route path="/support" element={<Support />} />
       <Route path="/staff/login" element={<StaffLogin />} />
       <Route path="/staff" element={<RequireStaff role="HANDLER"><Dashboard /></RequireStaff>} />
       <Route path="/staff/cases/:id" element={<RequireStaff role="HANDLER"><StaffCase /></RequireStaff>} />
