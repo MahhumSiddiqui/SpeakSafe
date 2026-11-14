@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Layout } from '../../components/Layout';
 import { Icon } from '../../components/Icon';
 import { ReadAloud } from '../../components/ReadAloud';
 import { VoiceRecorder } from '../../components/VoiceRecorder';
 import { Dictation } from '../../components/Dictation';
+import { FileThumb } from '../../components/FileThumb';
 import { Busy, FormError, TextField } from '../../components/Field';
 import { useReporter } from '../../auth/ReporterAuth';
 import { api } from '../../lib/api';
@@ -28,6 +29,7 @@ interface Member { id: string; displayName: string }
 export default function ReportWizard() {
   const { t } = useTranslation();
   const nav = useNavigate();
+  const fromJournal = (useLocation().state as { fromJournal?: { entries: number; files: number } } | null)?.fromJournal;
   const { session } = useReporter();
   const mk = session?.masterKey;
   const [d, setD] = useState<ReportDraft | null>(null);
@@ -220,6 +222,12 @@ export default function ReportWizard() {
           <h1 ref={headingRef} tabIndex={-1} data-read className="text-[1.6rem] leading-tight font-extrabold outline-none lg:text-[2rem]">{t(`report.q.${d.step}`)}</h1>
           <p data-read className="-mt-2 text-muted">{t(`report.help.${d.step}`, { name: '' })}</p>
           <ReadAloud />
+          {fromJournal && d.step <= 3 && (
+            <div role="status" className="card-soft flex items-start gap-3 text-[.95rem]">
+              <span className="icon-tile sm !bg-surface"><Icon name="book" size={18} /></span>
+              <span>{t('journal.addedToReport', { entries: fromJournal.entries, files: fromJournal.files })}</span>
+            </div>
+          )}
 
           {d.step === 1 && (
             <>
@@ -311,7 +319,7 @@ export default function ReportWizard() {
                 <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {d.files.map((f) => (
                     <li key={f.fileId} className="card flex flex-col gap-2 !p-3">
-                      <FileThumb file={f} url={previews[f.fileId]} onNeed={() => ensurePreview(f)} />
+                      <FileThumb kind={f.kind} url={previews[f.fileId]} onNeed={() => ensurePreview(f)} />
                       <div className="flex items-center justify-between gap-2">
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-semibold">{f.label}</span>
@@ -446,23 +454,6 @@ function Option({ on, onClick, icon, title, body }: { on: boolean; onClick: () =
         <b>{title}</b>
         <span className="text-[.95rem] text-muted">{body}</span>
       </span>
-    </button>
-  );
-}
-
-/** Thumbnails stay blurred until tapped (trauma-informed: no sudden distressing images). */
-function FileThumb({ file, url, onNeed }: { file: FileRef; url?: string; onNeed: () => void }) {
-  const { t } = useTranslation();
-  const [revealed, setRevealed] = useState(false);
-  useEffect(() => { if (file.kind === 'image' && !url) onNeed(); }, [file, url]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (file.kind === 'pdf') {
-    return <div className="flex aspect-square items-center justify-center rounded-xl bg-surface-2 text-primary"><Icon name="file" size={40} /></div>;
-  }
-  return (
-    <button type="button" onClick={() => setRevealed((r) => !r)} className="relative aspect-square overflow-hidden rounded-xl bg-surface-2"
-      aria-label={revealed ? t('evidence.hide') : t('evidence.reveal')}>
-      {url && <img src={url} alt="" className={`h-full w-full object-cover transition ${revealed ? '' : 'scale-110 blur-xl'}`} />}
-      {!revealed && <span className="absolute inset-x-2 bottom-2 rounded-full bg-surface px-2 py-1 text-xs font-bold text-text">{t('evidence.reveal')}</span>}
     </button>
   );
 }

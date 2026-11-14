@@ -119,6 +119,8 @@ model ReporterAccount {
   sessions          ReporterSession[]
   draft             ReporterDraft?
   draftFiles        DraftFile[]
+  journalEntries    JournalEntry[]
+  lockerFiles       LockerFile[]
 }
 
 model ReporterSession {
@@ -153,23 +155,30 @@ model DraftFile {
   @@index([accountId])
 }
 
-// ---------- Private journal ----------
-model Journal {
-  id         String         @id @default(uuid())
-  lookupHash String         @unique // SHA-256 of a key derived from the passphrase in the browser
-  createdAt  DateTime       @default(now())
-  entries    JournalEntry[]
+// ---------- Private journal and evidence locker ----------
+// Belongs to the reporter's private space; encrypted with the account's master key in the browser.
+// Unlike reports, the reporter may edit and delete their own journal and locker (these are private notes).
+model JournalEntry {
+  id         String          @id @default(uuid())
+  accountId  String
+  ciphertext String // date, text, place and linked locker files, as encrypted JSON
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  account    ReporterAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
-model JournalEntry {
-  id          String       @id @default(uuid())
-  journalId   String
-  ciphertext  String
-  nonce       String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  journal     Journal      @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  attachments Attachment[]
+model LockerFile {
+  id         String          @id @default(uuid())
+  accountId  String
+  meta       String // kind, type, label, length: encrypted JSON
+  ciphertext Bytes // metadata stripped, then encrypted in the browser
+  size       Int
+  createdAt  DateTime        @default(now())
+  account    ReporterAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
 // ---------- Cases (a submitted report) ----------
@@ -289,19 +298,17 @@ model CaseNote {
 }
 
 model Attachment {
-  id             String        @id @default(uuid())
-  caseId         String?
-  journalEntryId String?
-  mimeType       String
-  kind           String        @default("file") // "image" | "pdf" | "voice"
-  size           Int
-  fingerprint    String        @default("") // SHA-256 of the stored ciphertext
-  purpose        String        @default("evidence") // "evidence" | "message" (a voice note sent in a conversation)
-  ciphertext     Bytes // metadata stripped and encrypted in the browser
-  nonce          String
-  createdAt      DateTime      @default(now())
-  case           Case?         @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  caseId      String?
+  mimeType    String
+  kind        String   @default("file") // "image" | "pdf" | "voice"
+  size        Int
+  fingerprint String   @default("") // SHA-256 of the stored ciphertext
+  purpose     String   @default("evidence") // "evidence" | "message" (a voice note sent in a conversation)
+  ciphertext  Bytes // metadata stripped and encrypted in the browser
+  nonce       String
+  createdAt   DateTime @default(now())
+  case        Case?    @relation(fields: [caseId], references: [id], onDelete: Cascade)
 }
 
 model ReplyTemplate {

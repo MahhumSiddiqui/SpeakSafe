@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Recover from './pages/Recover';
 import MySpace from './pages/MySpace';
 import TakeBreak from './pages/TakeBreak';
+import Journal from './pages/Journal';
 import Placeholder from './pages/Placeholder';
 import ReportWizard from './pages/report/ReportWizard';
 import Sent from './pages/report/Sent';
@@ -37,7 +38,7 @@ export default function App() {
       <Route path="/report/sent" element={<RequireReporter><Sent /></RequireReporter>} />
       <Route path="/cases" element={<RequireReporter><MyCases /></RequireReporter>} />
       <Route path="/cases/:id" element={<RequireReporter><CaseView /></RequireReporter>} />
-      <Route path="/journal" element={<RequireReporter><Placeholder title={t('nav.journal')} /></RequireReporter>} />
+      <Route path="/journal" element={<RequireReporter><Journal /></RequireReporter>} />
       <Route path="/options" element={<Placeholder title={t('home.options')} />} />
       <Route path="/support" element={<Placeholder title={t('home.support')} />} />
       <Route path="/staff/login" element={<StaffLogin />} />

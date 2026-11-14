@@ -30,7 +30,7 @@ export function applySecurity(app: Express): void {
       origin: config.CLIENT_ORIGIN,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-      allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'X-Case-Auth', 'X-Attachment-Kind', 'X-Attachment-Type', 'X-Attachment-Purpose'],
+      allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'X-Case-Auth', 'X-Attachment-Kind', 'X-Attachment-Type', 'X-Attachment-Purpose', 'X-Locker-Meta'],
     }),
   );
 
